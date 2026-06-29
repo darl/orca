@@ -1,0 +1,24 @@
+{
+  "branch_info": {
+    "local": {
+      "name": "pr-14006699",
+      "commit": {
+        "date": "2026-06-29T21:01:19+03:00",
+        "title": "ytpoolctl: simplify Phase 3 reconciler wiring",
+        "id": "02415cf07dd38a9279f2a40679cb31e2fd1fc5cd",
+        "author": "darl"
+      }
+    },
+    "ahead": 1,
+    "remote": {
+      "name": "arcadia/users/darl/submit-8446dfd1-292c793d-5a19b4c9-89d4c1b5",
+      "commit": {
+        "date": "2026-06-29T20:12:29+03:00",
+        "title": "submit for PR 14006699",
+        "id": "ccc14a7dd92535597290f6de70dc8de39de862c3",
+        "author": "darl"
+      }
+    }
+  },
+  "status": {}
+}

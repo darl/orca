@@ -1,0 +1,22 @@
+{
+  "status": {
+    "unmerged": [
+      {
+        "conflict": {
+          "type": "content",
+          "their": {
+            "change": "modified"
+          },
+          "our": {
+            "change": "modified"
+          },
+          "base": {
+            "change": "none"
+          }
+        },
+        "status": "conflict",
+        "path": "junk/darl/__orca_conflict_probe__.txt"
+      }
+    ]
+  }
+}

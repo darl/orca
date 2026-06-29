@@ -1,0 +1,14 @@
+{
+  "branch_info": {
+    "local": {
+      "name": "orca-probe-branch",
+      "commit": {
+        "date": "2026-06-29T21:09:06+03:00",
+        "title": "orca fixture probe",
+        "id": "f81679c3bcd514ab71184e78741b8a913e0bc6ad",
+        "author": "darl"
+      }
+    }
+  },
+  "status": {}
+}

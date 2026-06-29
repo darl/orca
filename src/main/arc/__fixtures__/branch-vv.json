@@ -1,0 +1,113 @@
+[
+  {
+    "local": true,
+    "name": "pr-12416478",
+    "commit": {
+      "date": "2026-03-18T23:54:25+03:00",
+      "title": "submit for PR 12416478",
+      "id": "60f73872d5c039c4f68fb6bc436bdc56679d2109",
+      "author": "darl"
+    },
+    "remote": "arcadia/users/darl/submit-f989445c-d2c1ece1-3a1b8aeb-a3d5eb5d"
+  },
+  {
+    "local": true,
+    "name": "pr-12919951",
+    "commit": {
+      "date": "2026-04-13T23:29:32+03:00",
+      "title": "SDGSIM-6127: phase2: проставлять instance ttl для запускаемых графов",
+      "id": "f1e88c870444b26b81e234705a7ceb16dc17c59b",
+      "author": "darl"
+    },
+    "remote": "arcadia/users/darl/submit-b6a68894-8b1864c8-59be007a-383f2df"
+  },
+  {
+    "local": true,
+    "name": "pr-12920400",
+    "commit": {
+      "date": "2026-04-14T00:27:22+03:00",
+      "title": "SDGSIM-6127: phase3: проставлять instance ttl для запускаемых графов",
+      "id": "6d0b4bd0547abccc57021715eea43ff3f4645838",
+      "author": "darl"
+    },
+    "remote": "arcadia/users/darl/submit-82711f8d-52154b6-8ecbaaa2-45418807"
+  },
+  {
+    "local": true,
+    "name": "pr-13026452",
+    "commit": {
+      "date": "2026-04-24T00:09:13+03:00",
+      "title": "worklog: record the send-ack-dispatch fix (6f69c71)",
+      "id": "ab7ed2ad15b976971b7459d10db74507adfa1b06",
+      "author": "darl"
+    },
+    "remote": "arcadia/users/darl/submit-d0a4acd0-2c8b065f-c875f7ca-6e15ad44"
+  },
+  {
+    "local": true,
+    "name": "pr-13108782",
+    "commit": {
+      "date": "2026-04-26T11:29:54+03:00",
+      "title": "solo monitorings",
+      "id": "d6e197bcdfc2fc780b71d6dc492c34bd36e7964a",
+      "author": "darl"
+    },
+    "remote": "arcadia/users/darl/submit-4499a4a2-5428a7f0-dbcf0b95-a95b97c4"
+  },
+  {
+    "local": true,
+    "name": "pr-13258529",
+    "commit": {
+      "date": "2026-05-06T11:17:14+03:00",
+      "title": "submit for PR 13258529",
+      "id": "6b647bfe13e39533a791e304f5984a29189b5572",
+      "author": "darl"
+    },
+    "remote": "arcadia/users/darl/submit-4373acab-cc5f5ea2-b1d495e-9b06ff8a"
+  },
+  {
+    "local": true,
+    "name": "pr-13335278",
+    "commit": {
+      "date": "2026-05-12T16:23:33+03:00",
+      "title": "submit for PR 13335278",
+      "id": "356e4a73ef3369f10e6b3b09c1ff371102a1737b",
+      "author": "darl"
+    },
+    "remote": "arcadia/users/darl/submit-1005264d-b5a5effd-99fa58a9-e9c7ef4"
+  },
+  {
+    "local": true,
+    "name": "pr-13606926",
+    "commit": {
+      "date": "2026-05-28T12:53:30+03:00",
+      "title": "submit for PR 13606926",
+      "id": "38112eaafddaa6fd77998db539fe0d44f098b7fb",
+      "author": "darl"
+    },
+    "remote": "arcadia/users/darl/submit-4a81bf40-7a8c1d35-1607c829-50764272"
+  },
+  {
+    "local": true,
+    "name": "pr-14006699",
+    "commit": {
+      "date": "2026-06-29T21:01:19+03:00",
+      "title": "ytpoolctl: simplify Phase 3 reconciler wiring",
+      "id": "02415cf07dd38a9279f2a40679cb31e2fd1fc5cd",
+      "author": "darl"
+    },
+    "remote": "arcadia/users/darl/submit-8446dfd1-292c793d-5a19b4c9-89d4c1b5",
+    "current": true
+  },
+  {
+    "local": true,
+    "name": "trunk",
+    "commit": {
+      "date": "2026-06-29T15:46:56+03:00",
+      "title": "https://st.yandex-team.ru/MON-2750",
+      "id": "d5034714fd698d3c4beb305755d3dc18fc137b51",
+      "author": "i-m-spirin"
+    },
+    "remote": "arcadia/trunk"
+  }
+]

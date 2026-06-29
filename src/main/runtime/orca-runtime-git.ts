@@ -57,6 +57,8 @@ import {
   SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE
 } from '../providers/ssh-git-dispatch'
 import { checkIgnoredPaths } from '../git/check-ignored-paths'
+import { routeLocalVcsKind } from '../vcs/local-vcs-router'
+import { getArcStatus } from '../arc/arc-status'
 import {
   cancelGenerateCommitMessageLocal,
   cancelGeneratePullRequestFieldsLocal,
@@ -178,6 +180,9 @@ export class RuntimeGitCommands {
       return options
         ? provider.getStatus(target.worktree.path, options)
         : provider.getStatus(target.worktree.path)
+    }
+    if (routeLocalVcsKind(target.worktree.path) === 'arc') {
+      return getArcStatus(target.worktree.path, options)
     }
     const gitOptions = localGitOptionsForTarget(target)
     return options

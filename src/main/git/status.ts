@@ -36,6 +36,7 @@ import {
   gitStreamStdout
 } from './runner'
 import { StatusPorcelainParser } from './status-porcelain-parser'
+import { buildGitStatusResult } from '../../shared/git-status-result-builder'
 import { DEFAULT_GIT_STATUS_LIMIT } from '../../shared/git-status-limit'
 import { describeMaxBufferOverflowError, isMaxBufferOverflowError } from './max-buffer-overflow'
 import {
@@ -278,28 +279,23 @@ async function runGetStatus(
     await attachLineStats(worktreePath, entries, options)
   }
 
-  return {
+  return buildGitStatusResult({
     entries,
     conflictOperation,
     head,
     branch,
-    ...(options.includeIgnored ? { ignoredPaths: parser.ignoredPaths } : {}),
-    ...(didHitLimit ? { didHitLimit: true, statusLength: parser.statusLength } : {}),
-    ...(statusSucceeded
-      ? {
-          upstreamStatus:
-            effectiveUpstreamStatus ??
-            (upstreamName
-              ? {
-                  hasUpstream: true,
-                  upstreamName,
-                  ahead: upstreamAheadBehind?.ahead ?? 0,
-                  behind: upstreamAheadBehind?.behind ?? 0
-                }
-              : { hasUpstream: false, ahead: 0, behind: 0 })
-        }
-      : {})
-  }
+    includeIgnored: options.includeIgnored === true,
+    ignoredPaths: parser.ignoredPaths,
+    didHitLimit,
+    statusLength: parser.statusLength,
+    upstream: {
+      statusSucceeded,
+      effective: effectiveUpstreamStatus,
+      upstreamName,
+      ahead: upstreamAheadBehind?.ahead ?? 0,
+      behind: upstreamAheadBehind?.behind ?? 0
+    }
+  })
 }
 
 /**

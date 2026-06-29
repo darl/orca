@@ -1,0 +1,14 @@
+{
+  "repository": "arcadia",
+  "remote": "users/darl/submit-8446dfd1-292c793d-5a19b4c9-89d4c1b5",
+  "author": "darl",
+  "summary": "ytpoolctl: simplify Phase 3 reconciler wiring",
+  "remote_head": "ccc14a7dd92535597290f6de70dc8de39de862c3",
+  "user_login": "darl",
+  "branch": "pr-14006699",
+  "mount_id": "1a9f1805-be7e3193-7cc7d60b-4402b108",
+  "repository_type": "vfs",
+  "date": "2026-06-29T21:01:19+03:00",
+  "message": "ytpoolctl: simplify Phase 3 reconciler wiring\n\nBehavior-preserving cleanup of the YTPool controller code:\n- factory.go: dedupe the client-TTL default (apply once, after options,\n  so a zero/negative WithClientTTL also falls back to 30m)\n- ytpool_controller.go: replace opaque review-tracker tags in comments\n  with plain-language explanations (auth-retry, deletion path)\n- main.go: explain why the shared http.Client pool is reused across\n  per-namespace clients\n\nNo exported signatures, struct fields, interfaces, or error/log\nmessage semantics changed. Verified: ya make -r controllers/ytpool Ok;\nreconciler gotest 13/13 GOOD; client gotest 30/30 GOOD.",
+  "hash": "02415cf07dd38a9279f2a40679cb31e2fd1fc5cd"
+}

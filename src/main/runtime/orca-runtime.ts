@@ -572,6 +572,7 @@ import {
   getRemoteDrift,
   getRecentDriftSubjects
 } from '../git/repo'
+import { detectLocalRepoOpen } from '../vcs/local-repo-open'
 import { hasLocalCommitObject } from '../git/commit-object-ref'
 import {
   listWorktrees,
@@ -9702,7 +9703,7 @@ export class OrcaRuntimeService {
       // server-side repo paths to be explicit so `orca serve` cwd is irrelevant.
       throw new Error('Project path must be an absolute path')
     }
-    if (kind === 'git' && !isGitRepo(path)) {
+    if (kind === 'git' && !detectLocalRepoOpen(path).isRepo) {
       throw new Error(`Not a valid git repository: ${path}`)
     }
 

@@ -1,0 +1,21 @@
+{
+  "status": {
+    "changed": [
+      {
+        "status": "modified",
+        "type": "file",
+        "path": "infra/infractl/controllers/ytpool/clients/ytpool/factory.go"
+      },
+      {
+        "status": "modified",
+        "type": "file",
+        "path": "infra/infractl/controllers/ytpool/controllers/ytpool_controller.go"
+      },
+      {
+        "status": "modified",
+        "type": "file",
+        "path": "infra/infractl/controllers/ytpool/main.go"
+      }
+    ]
+  }
+}

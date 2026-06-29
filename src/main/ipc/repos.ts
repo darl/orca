@@ -60,7 +60,6 @@ import {
 import { createNestedRepoImportTargetResolver } from '../project-groups/nested-repo-import-target'
 import {
   isGitRepo,
-  getGitRepoRoot,
   getGitUsername,
   getRepoName,
   getBaseRefDefault,
@@ -74,6 +73,7 @@ import {
   mergeBaseRefSearchResultGroups,
   searchBaseRefDetails
 } from '../git/repo'
+import { detectLocalRepoOpen } from '../vcs/local-repo-open'
 import { getSshGitProvider } from '../providers/ssh-git-dispatch'
 import { getSshFilesystemProvider } from '../providers/ssh-filesystem-dispatch'
 import { getSshGitUsername } from '../git/git-username'
@@ -181,11 +181,12 @@ async function addLocalRepoFromPath(
   kind: 'git' | 'folder' = 'git'
 ): Promise<{ repo: Repo; alreadyExisted: boolean } | { error: string }> {
   const repoKind = kind === 'folder' ? 'folder' : 'git'
-  if (repoKind === 'git' && !isGitRepo(path)) {
+  const open = detectLocalRepoOpen(path)
+  if (repoKind === 'git' && !open.isRepo) {
     return { error: `Not a valid git repository: ${path}` }
   }
 
-  const resolvedPath = repoKind === 'git' ? getGitRepoRoot(path) : path
+  const resolvedPath = repoKind === 'git' ? open.resolvedPath : path
   const pathKey = normalizeRuntimePathForComparison(path)
   const existing = store
     .getRepos()

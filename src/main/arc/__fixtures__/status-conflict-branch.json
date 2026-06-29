@@ -1,0 +1,36 @@
+{
+  "branch_info": {
+    "sequencer": "rebase",
+    "local": {
+      "commit": {
+        "date": "2026-06-29T21:33:35+03:00",
+        "title": "probe cB",
+        "id": "74a2322b444a936efbed6abf7b262f5d64a9c4b0",
+        "author": "darl"
+      }
+    },
+    "conflicts": true,
+    "rebasing": true,
+    "detached": true
+  },
+  "status": {
+    "unmerged": [
+      {
+        "conflict": {
+          "type": "content",
+          "their": {
+            "change": "modified"
+          },
+          "our": {
+            "change": "modified"
+          },
+          "base": {
+            "change": "none"
+          }
+        },
+        "status": "conflict",
+        "path": "junk/darl/__orca_conflict_probe__.txt"
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "status": {
+    "untracked": [
+      {
+        "status": "untracked",
+        "type": "file",
+        "path": "__orca_probe__.txt"
+      }
+    ]
+  }
+}
