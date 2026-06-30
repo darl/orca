@@ -1455,6 +1455,10 @@ app.whenReady().then(async () => {
     getAgentStatusSnapshot: () => agentHookServer.getStatusSnapshot()
   })
   runtime = runtimeService
+  // Why: arc worktrees are FUSE mounts that don't survive a shutdown; remount
+  // any Orca-created ones in the background so they're ready after a restart.
+  // Flag-gated and fire-and-forget so it never blocks startup.
+  void runtimeService.remountArcWorktreesOnStartup()
   automations = new AutomationService(store, {
     claudeUsage,
     codexUsage,

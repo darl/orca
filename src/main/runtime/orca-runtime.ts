@@ -573,6 +573,21 @@ import {
   getRecentDriftSubjects
 } from '../git/repo'
 import { detectLocalRepoOpen } from '../vcs/local-repo-open'
+import { detectVcs } from '../vcs/detect-vcs'
+import { routeLocalVcsKind } from '../vcs/local-vcs-router'
+import {
+  addArcWorktree,
+  assertArcWorktreeRemovable,
+  readArcRepositoryName,
+  remountArcWorktrees,
+  removeArcWorktree
+} from '../arc/arc-worktree'
+import { isArcVcsEnabled } from '../vcs/arc-vcs-flag'
+import {
+  arcProjectSubpath,
+  computeArcWorktreeLayout,
+  arcMountPathFromAgentCwd
+} from '../arc/arc-worktree-path'
 import { hasLocalCommitObject } from '../git/commit-object-ref'
 import {
   listWorktrees,
@@ -12606,6 +12621,17 @@ export class OrcaRuntimeService {
           : {})
       }
     }
+    if (routeLocalVcsKind(repo.path) === 'arc') {
+      return this.createManagedArcWorktree(repo, args, {
+        settings: createSettings,
+        lineageResolution,
+        ...(lineageInput ? { lineageInput } : {}),
+        ...(effectiveStartup ? { effectiveStartup } : {}),
+        ...(effectiveStartupFollowup ? { effectiveStartupFollowup } : {}),
+        ...(effectiveCreatedWithAgent ? { effectiveCreatedWithAgent } : {}),
+        ...(effectiveDraftPaste ? { effectiveDraftPaste } : {})
+      })
+    }
     const settings = createSettings
     const worktreePathSettings = getWorktreePathSettings(repo, settings)
     const localGitExecOptions = getLocalProjectGitExecOptions(this.requireStore(), repo)
@@ -13299,6 +13325,182 @@ export class OrcaRuntimeService {
             }
           }
         : {})
+    }
+  }
+
+  /**
+   * Create a worktree in an arc working copy. arc's worktree is a FUSE mount of
+   * the whole repository, so this skips the git base-ref/push-target/sparse
+   * machinery entirely: mount + branch-off-trunk via the arc backend, then run
+   * the same metadata/startup/activation tail as a normal worktree.
+   */
+  private async createManagedArcWorktree(
+    repo: Repo,
+    args: Parameters<OrcaRuntimeService['createManagedWorktree']>[0],
+    ctx: {
+      settings: Parameters<typeof getWorktreeCreationLayout>[1]
+      lineageResolution: WorktreeLineageResolution
+      lineageInput?: WorktreeLineageInput
+      effectiveStartup?: WorktreeStartupLaunch
+      effectiveStartupFollowup?: WorktreeStartupFollowup
+      effectiveCreatedWithAgent?: TuiAgent
+      effectiveDraftPaste?: WorktreeStartupDraftPaste
+    }
+  ): Promise<CreateWorktreeResult> {
+    if (!this.store) {
+      throw new Error('runtime_unavailable')
+    }
+    const { settings, effectiveStartup, effectiveCreatedWithAgent, effectiveDraftPaste } = ctx
+    const home = homedir()
+    const arcRoot = detectVcs(repo.path).root
+    const projectSubpath = arcProjectSubpath(arcRoot, repo.path)
+    const repoName = await readArcRepositoryName(repo.path)
+    const base = 'trunk'
+    const sanitizedName = sanitizeWorktreeName(args.name)
+    const requestedDisplayName = args.displayName?.trim() || undefined
+
+    const desiredBranch = args.branchNameOverride?.trim() || sanitizedName
+    let branchName = desiredBranch
+    let branchResolved = false
+    for (let suffix = 1; suffix < 100; suffix += 1) {
+      branchName = suffix === 1 ? desiredBranch : `${desiredBranch}-${suffix}`
+      const layout = computeArcWorktreeLayout({ projectSubpath, branch: branchName, home })
+      if (!(await pathExists(layout.mountPath))) {
+        branchResolved = true
+        break
+      }
+    }
+    if (!branchResolved) {
+      throw new Error(
+        `Could not find an available worktree path for "${sanitizedName}". Pick a different name.`
+      )
+    }
+
+    const { worktree: created } = await addArcWorktree({
+      projectSubpath,
+      branch: branchName,
+      base,
+      repo: repoName,
+      home
+    })
+    const worktreePath = created.path
+    const worktreeId = `${repo.id}::${worktreePath}`
+    const now = Date.now()
+    const displayNameMeta = requestedDisplayName
+      ? { displayName: requestedDisplayName }
+      : shouldSetDisplayName(args.name, branchName, sanitizedName)
+        ? { displayName: args.name }
+        : {}
+    const meta = this.store.setWorktreeMeta(worktreeId, {
+      instanceId: randomUUID(),
+      ...getProjectHostSetupWorktreeMeta(this.store.getProjectHostSetups?.() ?? [], repo),
+      lastActivityAt: now,
+      createdAt: now,
+      orcaCreatedAt: now,
+      orcaCreationSource: 'runtime',
+      orcaCreationWorkspaceLayout: getWorktreeCreationLayout(repo, settings),
+      ...displayNameMeta,
+      baseRef: args.compareBaseRef ?? base,
+      ...(effectiveCreatedWithAgent ? { createdWithAgent: effectiveCreatedWithAgent } : {}),
+      ...(args.pendingFirstAgentMessageRename === true && effectiveCreatedWithAgent
+        ? { pendingFirstAgentMessageRename: true }
+        : {}),
+      ...(args.automationProvenance ? { automationProvenance: args.automationProvenance } : {}),
+      ...(args.linkedIssue !== undefined ? { linkedIssue: args.linkedIssue } : {}),
+      ...(args.linkedPR !== undefined ? { linkedPR: args.linkedPR } : {}),
+      ...(args.linkedLinearIssue !== undefined
+        ? { linkedLinearIssue: args.linkedLinearIssue }
+        : {}),
+      ...(args.linkedLinearIssueWorkspaceId !== undefined
+        ? { linkedLinearIssueWorkspaceId: args.linkedLinearIssueWorkspaceId }
+        : {}),
+      ...(args.linkedLinearIssueOrganizationUrlKey !== undefined
+        ? { linkedLinearIssueOrganizationUrlKey: args.linkedLinearIssueOrganizationUrlKey }
+        : {}),
+      ...(args.linkedGitLabIssue !== undefined
+        ? { linkedGitLabIssue: args.linkedGitLabIssue }
+        : {}),
+      ...(args.linkedGitLabMR !== undefined ? { linkedGitLabMR: args.linkedGitLabMR } : {}),
+      ...(args.linkedBitbucketPR !== undefined
+        ? { linkedBitbucketPR: args.linkedBitbucketPR }
+        : {}),
+      ...(args.linkedAzureDevOpsPR !== undefined
+        ? { linkedAzureDevOpsPR: args.linkedAzureDevOpsPR }
+        : {}),
+      ...(args.linkedGiteaPR !== undefined ? { linkedGiteaPR: args.linkedGiteaPR } : {}),
+      ...(args.comment !== undefined ? { comment: args.comment } : {}),
+      ...(args.manualOrder !== undefined ? { manualOrder: args.manualOrder } : {}),
+      ...(args.workspaceStatus !== undefined ? { workspaceStatus: args.workspaceStatus } : {})
+    })
+    const worktree = mergeWorktree(repo.id, created, meta)
+    const { lineage, workspaceLineage, warnings } = this.recordCreatedWorktreeLineage(
+      worktree,
+      ctx.lineageResolution
+    )
+
+    this.invalidateResolvedWorktreeCache()
+    invalidateAuthorizedRootsCache()
+    this.notifyWorktreesChanged(repo.id)
+
+    const shouldActivate = args.activate === true || args.runHooks === true
+    let warning: string | undefined
+    let didSpawnStartup = false
+    if (effectiveStartup && this.ptyController?.spawn) {
+      try {
+        const startupTrustAgent = effectiveDraftPaste?.agent ?? effectiveCreatedWithAgent
+        if (startupTrustAgent) {
+          this.markLocalWorkspaceTrustedForAgent(startupTrustAgent, worktree.path)
+        }
+        const terminal = await this.createTerminal(`id:${worktree.id}`, {
+          command: effectiveStartup.command,
+          env: effectiveStartup.env,
+          ...(effectiveStartup.launchConfig ? { launchConfig: effectiveStartup.launchConfig } : {}),
+          ...(effectiveCreatedWithAgent ? { launchAgent: effectiveCreatedWithAgent } : {}),
+          startupCommandDelivery: effectiveStartup.startupCommandDelivery,
+          telemetry: effectiveStartup.telemetry
+        })
+        if (effectiveDraftPaste) {
+          this.pasteStartupDraftWhenReady(terminal.handle, effectiveDraftPaste)
+        }
+        if (ctx.effectiveStartupFollowup) {
+          this.sendStartupFollowupWhenReady(terminal.handle, ctx.effectiveStartupFollowup)
+        }
+        didSpawnStartup = true
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        warning = `Failed to create the startup terminal for ${worktree.path}: ${message}`
+        console.warn(`[worktree-create] ${warning}`)
+      }
+    }
+    if (shouldActivate) {
+      if (effectiveStartup && !didSpawnStartup) {
+        this.notifyActivateWorktree(repo.id, worktree.id, undefined, effectiveStartup)
+      } else {
+        this.notifyActivateWorktree(repo.id, worktree.id)
+      }
+    } else if (this.ptyController?.spawn && !didSpawnStartup) {
+      try {
+        await this.createTerminal(`id:${worktree.id}`)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        warning = warning
+          ? `${warning} Also failed to create the initial terminal for ${worktree.path}: ${message}`
+          : `Failed to create the initial terminal for ${worktree.path}: ${message}`
+        console.warn(`[worktree-create] ${warning}`)
+      }
+    }
+
+    return {
+      worktree: {
+        ...worktree,
+        parentWorktreeId: lineage?.parentWorktreeId ?? null,
+        childWorktreeIds: [],
+        lineage,
+        workspaceLineage,
+        git: created
+      },
+      ...(ctx.lineageInput ? { lineage, workspaceLineage, warnings } : {}),
+      ...(warning ? { warning } : {})
     }
   }
 
@@ -14644,6 +14846,79 @@ export class OrcaRuntimeService {
     return { deleted: true }
   }
 
+  /**
+   * Remount Orca-created arc worktrees left unmounted by a prior shutdown so they
+   * survive an app restart (M3 done-when). Flag-gated, best-effort, and
+   * fire-and-forget from the caller so it never blocks startup.
+   */
+  async remountArcWorktreesOnStartup(): Promise<void> {
+    if (!isArcVcsEnabled()) {
+      return
+    }
+    try {
+      const result = await remountArcWorktrees({ home: homedir() })
+      for (const failure of result.failed) {
+        console.warn(`[arc/worktree] failed to remount ${failure.mount}: ${failure.error}`)
+      }
+      if (result.remounted.length > 0) {
+        console.info(`[arc/worktree] remounted ${result.remounted.length} worktree(s) on startup`)
+        this.invalidateResolvedWorktreeCache()
+        for (const repo of this.store?.getRepos() ?? []) {
+          if (!repo.connectionId) {
+            this.notifyWorktreesChanged(repo.id)
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('[arc/worktree] startup remount failed:', error)
+    }
+  }
+
+  /**
+   * Remove an arc worktree: guard against dirty/unpushed state, tear down its
+   * PTYs and watcher, then unmount + delete the FUSE mount. arc has no
+   * `git worktree remove` row to prune, so this is a focused unmount path rather
+   * than the git/SSH removal state machine.
+   */
+  private async removeManagedArcWorktree(
+    repo: Repo,
+    removalTarget: RuntimeWorktreeRemovalTarget,
+    force: boolean
+  ): Promise<RemoveWorktreeResult & { warning?: string }> {
+    const store = this.requireStore()
+    const agentCwd = removalTarget.path
+    const projectSubpath = arcProjectSubpath(detectVcs(repo.path).root, repo.path)
+    const mountPath = arcMountPathFromAgentCwd(agentCwd, projectSubpath)
+
+    await assertArcWorktreeRemovable({ agentCwd, force })
+
+    await closeLocalWatcherForWorktreePath(agentCwd).catch((err) => {
+      console.warn(`[filesystem-watcher] failed to close ${agentCwd}:`, err)
+    })
+    const localProvider = this.getLocalProvider()
+    if (localProvider) {
+      // Why: a FUSE unmount fails while any shell still has its cwd inside the
+      // mount, so kill the worktree's PTYs before unmounting.
+      await killAllProcessesForWorktree(removalTarget.id, {
+        runtime: this,
+        localProvider,
+        onPtyStopped: this.onPtyStopped ?? undefined
+      }).catch((err) => {
+        console.warn(`[worktree-teardown] failed for ${removalTarget.id}:`, err)
+      })
+    }
+
+    await removeArcWorktree({ agentCwd, mountPath, home: homedir(), force: true })
+
+    this.clearOptimisticReconcileToken(removalTarget.id)
+    this.removeWorktreeMetadataAndHistory(store, removalTarget.id)
+    this.preservedBranchCleanupByWorktreeId.delete(removalTarget.id)
+    this.invalidateResolvedWorktreeCache()
+    invalidateAuthorizedRootsCache()
+    this.notifyWorktreesChanged(repo.id)
+    return {}
+  }
+
   async removeManagedWorktree(
     worktreeSelector: string,
     force = false,
@@ -14693,6 +14968,9 @@ export class OrcaRuntimeService {
         this.invalidateResolvedWorktreeCache()
         this.notifyWorktreesChanged(repo.id)
         return {}
+      }
+      if (!repo.connectionId && routeLocalVcsKind(repo.path) === 'arc') {
+        return this.removeManagedArcWorktree(repo, removalTarget, force)
       }
       const provider = repo.connectionId ? requireSshGitProvider(repo.connectionId) : null
       const fsProvider = repo.connectionId ? getSshFilesystemProvider(repo.connectionId) : null

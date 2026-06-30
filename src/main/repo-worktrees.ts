@@ -1,8 +1,13 @@
+import { homedir } from 'os'
 import type { GitWorktreeInfo, Repo } from '../shared/types'
 import { listWorktrees } from './git/worktree'
 import { isFolderRepo } from '../shared/repo-kind'
 import { getSshGitProvider } from './providers/ssh-git-dispatch'
 import { areWorktreePathsEqual } from './ipc/worktree-logic'
+import { routeLocalVcsKind } from './vcs/local-vcs-router'
+import { detectVcs } from './vcs/detect-vcs'
+import { listArcRepoWorktrees } from './arc/arc-worktree'
+import { arcProjectSubpath } from './arc/arc-worktree-path'
 
 type LocalRepoWorktreeListOptions = {
   wslDistro?: string
@@ -41,6 +46,14 @@ export async function listRepoWorktrees(
     // reattached during startup. Return empty instead of falling back to
     // local git against a server path.
     return provider ? await provider.listWorktrees(repo.path) : []
+  }
+  if (routeLocalVcsKind(repo.path) === 'arc') {
+    return listArcRepoWorktrees({
+      repoPath: repo.path,
+      projectSubpath: arcProjectSubpath(detectVcs(repo.path).root, repo.path),
+      home: homedir(),
+      ...(options.signal ? { signal: options.signal } : {})
+    })
   }
   return options.wslDistro
     ? await listWorktrees(repo.path, options)

@@ -135,6 +135,8 @@ function mapArcSequencer(branchInfo: ArcBranchInfo | undefined): GitConflictOper
       return 'merge'
     case 'cherry-pick':
       return 'cherry-pick'
+    case undefined:
+      return 'unknown'
     default:
       return 'unknown'
   }

@@ -107,3 +107,52 @@ export function arcLogArgs(options: { limit?: number } = {}): string[] {
 export function arcBranchArgs(): string[] {
   return ['branch', '--json', '-vv']
 }
+
+/**
+ * `arc mount -m <path> -S <store> --object-store <shared> -r <repo>` argv. arc's
+ * worktree is a FUSE mount of the whole repository; a per-mount overlay `store`
+ * keeps mount-local state while a shared `objectStore` lets every Orca-created
+ * mount reuse one blob store so disk stays bounded.
+ */
+export function arcMountArgs(options: {
+  mountPath: string
+  store: string
+  objectStore: string
+  repo: string
+}): string[] {
+  return [
+    'mount',
+    '-m',
+    options.mountPath,
+    '-S',
+    options.store,
+    '--object-store',
+    options.objectStore,
+    '-r',
+    options.repo
+  ]
+}
+
+/** `arc mount <path>` — remount an existing, currently-unmounted worktree. */
+export function arcRemountArgs(mountPath: string): string[] {
+  return ['mount', mountPath]
+}
+
+/** `arc mount --list --json` — every known mount with status/store paths. */
+export function arcMountListArgs(): string[] {
+  return ['mount', '--list', '--json']
+}
+
+/** `arc unmount <path> [--forget]` — `--forget` also drops the mount registration. */
+export function arcUnmountArgs(mountPath: string, options: { forget?: boolean } = {}): string[] {
+  const args = ['unmount', mountPath]
+  if (options.forget) {
+    args.push('--forget')
+  }
+  return args
+}
+
+/** `arc checkout -b <branch> <base>` — create and switch to a new branch off base. */
+export function arcCheckoutNewBranchArgs(branch: string, base: string): string[] {
+  return ['checkout', '-b', branch, base]
+}
