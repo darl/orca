@@ -50,6 +50,26 @@ export async function arcExecFileAsync(
 }
 
 /**
+ * Buffer-returning arc execution for reading blob contents (`arc show`). Keeps
+ * raw bytes so binary detection and base64 previews work — the string-decoding
+ * `arcExecFileAsync` would corrupt non-UTF-8 blobs.
+ */
+export async function arcExecFileAsyncBuffer(
+  args: string[],
+  options: ArcExecOptions
+): Promise<{ stdout: Buffer; stderr: Buffer }> {
+  const { stdout, stderr } = await execFileAsync('arc', args, {
+    cwd: options.cwd,
+    encoding: 'buffer',
+    maxBuffer: options.maxBuffer ?? DEFAULT_GIT_MAX_BUFFER,
+    env: nonInteractiveArcEnv(options.env),
+    ...(options.signal ? { signal: options.signal } : {}),
+    ...(options.timeout ? { timeout: options.timeout } : {})
+  })
+  return { stdout: stdout as Buffer, stderr: stderr as Buffer }
+}
+
+/**
  * Run an arc command that emits JSON on stdout and parse it. Throws a labeled
  * error on non-JSON output so a schema/version drift fails loud (the parser
  * contract is pinned to the captured arc fixtures) rather than silently
@@ -111,6 +131,16 @@ export function arcBranchArgs(): string[] {
 /** `arc merge-base <a> <b>` — best common ancestor commit of two refs. */
 export function arcMergeBaseArgs(a: string, b: string): string[] {
   return ['merge-base', a, b]
+}
+
+/**
+ * `arc show <rev>:<path>` — raw blob content at a revision (git-compatible).
+ * `rev` may be HEAD, a commit id, or empty for the staged index blob (`:path`).
+ * arc has no `--end-of-options`; the single `rev:path` positional is safe since
+ * the path is always prefixed by `rev:`.
+ */
+export function arcShowBlobArgs(rev: string, filePath: string): string[] {
+  return ['show', `${rev}:${filePath.replace(/\\/g, '/')}`]
 }
 
 /**

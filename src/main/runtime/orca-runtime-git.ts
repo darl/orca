@@ -60,6 +60,7 @@ import { checkIgnoredPaths } from '../git/check-ignored-paths'
 import { routeLocalVcsKind } from '../vcs/local-vcs-router'
 import { getArcStatus } from '../arc/arc-status'
 import { getArcHistory } from '../arc/arc-history'
+import { getArcBranchDiff, getArcCommitDiff, getArcDiff } from '../arc/arc-diff'
 import {
   cancelGenerateCommitMessageLocal,
   cancelGeneratePullRequestFieldsLocal,
@@ -330,6 +331,9 @@ export class RuntimeGitCommands {
       }
       return provider.getDiff(target.worktree.path, relativePath, staged, compareAgainstHead)
     }
+    if (routeLocalVcsKind(target.worktree.path) === 'arc') {
+      return getArcDiff(target.worktree.path, relativePath, staged, compareAgainstHead ?? false)
+    }
     return getDiff(
       target.worktree.path,
       relativePath,
@@ -521,6 +525,14 @@ export class RuntimeGitCommands {
         }
       )
     }
+    if (routeLocalVcsKind(target.worktree.path) === 'arc') {
+      return getArcBranchDiff(target.worktree.path, {
+        mergeBase: compare.mergeBase,
+        headOid: compare.headOid,
+        filePath: relativePath,
+        ...(oldRelativePath ? { oldPath: oldRelativePath } : {})
+      })
+    }
     return getBranchDiff(
       target.worktree.path,
       {
@@ -550,6 +562,14 @@ export class RuntimeGitCommands {
         parentOid: args.parentOid,
         filePath: relativePath,
         oldPath: oldRelativePath
+      })
+    }
+    if (routeLocalVcsKind(target.worktree.path) === 'arc') {
+      return getArcCommitDiff(target.worktree.path, {
+        commitOid: args.commitOid,
+        parentOid: args.parentOid,
+        filePath: relativePath,
+        ...(oldRelativePath ? { oldPath: oldRelativePath } : {})
       })
     }
     return getCommitDiff(

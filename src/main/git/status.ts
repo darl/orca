@@ -51,7 +51,7 @@ import type { GitRuntimeOptions } from './git-runtime-options'
 import { gitOptionsForWorktree } from './git-runtime-options'
 import { parseGitRevListFirstParentOid } from '../../shared/git-rev-list-output'
 
-const MAX_GIT_SHOW_BYTES = 10 * 1024 * 1024
+export const MAX_GIT_SHOW_BYTES = 10 * 1024 * 1024
 const MAX_STAGED_COMMIT_CONTEXT_BYTES = MAX_GIT_SHOW_BYTES
 const BULK_CHUNK_SIZE = 100
 const EFFECTIVE_UPSTREAM_NEGATIVE_CACHE_TTL_MS = 5 * 60_000
@@ -1654,7 +1654,7 @@ async function readGitBlobAtOidPath(
   }
 }
 
-async function readWorkingTreeFile(filePath: string): Promise<GitBlobReadResult> {
+export async function readWorkingTreeFile(filePath: string): Promise<GitBlobReadResult> {
   try {
     const fileStat = await stat(filePath)
     if (!fileStat.isFile()) {
@@ -1672,7 +1672,7 @@ async function readWorkingTreeFile(filePath: string): Promise<GitBlobReadResult>
   }
 }
 
-function bufferToBlob(buffer: Buffer, filePath?: string): GitBlobReadResult {
+export function bufferToBlob(buffer: Buffer, filePath?: string): GitBlobReadResult {
   const isBinary = isBinaryBuffer(buffer)
   // Return base64 for recognized image formats so the renderer can display them
   const isPreviewableBinary = filePath
@@ -1689,7 +1689,7 @@ function bufferToBlob(buffer: Buffer, filePath?: string): GitBlobReadResult {
   }
 }
 
-function buildDiffResult(
+export function buildDiffResult(
   originalContent: string,
   modifiedContent: string,
   originalIsBinary: boolean,
@@ -1736,7 +1736,7 @@ function buildDiffResult(
   }
 }
 
-type GitBlobReadResult = {
+export type GitBlobReadResult = {
   content: string
   isBinary: boolean
   exists: boolean
