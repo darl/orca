@@ -108,6 +108,11 @@ export function arcBranchArgs(): string[] {
   return ['branch', '--json', '-vv']
 }
 
+/** `arc merge-base <a> <b>` — best common ancestor commit of two refs. */
+export function arcMergeBaseArgs(a: string, b: string): string[] {
+  return ['merge-base', a, b]
+}
+
 /**
  * `arc mount -m <path> -S <store> --object-store <shared> -r <repo>` argv. arc's
  * worktree is a FUSE mount of the whole repository; a per-mount overlay `store`

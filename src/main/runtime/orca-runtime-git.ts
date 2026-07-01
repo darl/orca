@@ -59,6 +59,7 @@ import {
 import { checkIgnoredPaths } from '../git/check-ignored-paths'
 import { routeLocalVcsKind } from '../vcs/local-vcs-router'
 import { getArcStatus } from '../arc/arc-status'
+import { getArcHistory } from '../arc/arc-history'
 import {
   cancelGenerateCommitMessageLocal,
   cancelGeneratePullRequestFieldsLocal,
@@ -235,6 +236,9 @@ export class RuntimeGitCommands {
         throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
       }
       return provider.getHistory(target.worktree.path, options)
+    }
+    if (routeLocalVcsKind(target.worktree.path) === 'arc') {
+      return getArcHistory(target.worktree.path, options)
     }
     return getGitHistory(target.worktree.path, {
       ...options,
