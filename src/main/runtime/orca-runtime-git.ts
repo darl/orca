@@ -61,6 +61,7 @@ import { resolveLocalArcRoot } from '../vcs/local-vcs-router'
 import { getArcStatus } from '../arc/arc-status'
 import { getArcHistory } from '../arc/arc-history'
 import { getArcBranchDiff, getArcCommitDiff, getArcDiff } from '../arc/arc-diff'
+import { commitArcChanges } from '../arc/arc-commit'
 import {
   bulkDiscardArcChanges,
   bulkStageArcFiles,
@@ -611,6 +612,10 @@ export class RuntimeGitCommands {
         throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
       }
       return provider.commit(target.worktree.path, message)
+    }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      return commitArcChanges(arcRoot, message)
     }
     return commitChanges(target.worktree.path, message, localGitOptionsForTarget(target))
   }

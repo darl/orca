@@ -210,6 +210,11 @@ export function arcResetPathsArgs(paths: string[]): string[] {
   return ['reset', 'HEAD', ...paths]
 }
 
+/** `arc commit -m <message>` — record the staged index as a new commit. */
+export function arcCommitArgs(message: string): string[] {
+  return ['commit', '-m', message]
+}
+
 /**
  * `arc checkout <rev> <path>...` — restore working-tree (and index) paths to
  * their content at `rev`. arc rejects `--`, so paths are bare positionals; that
