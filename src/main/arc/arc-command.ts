@@ -191,3 +191,32 @@ export function arcUnmountArgs(mountPath: string, options: { forget?: boolean } 
 export function arcCheckoutNewBranchArgs(branch: string, base: string): string[] {
   return ['checkout', '-b', branch, base]
 }
+
+/**
+ * `arc add <path>...` — stage file contents into the index. Paths are literal
+ * (arc does not expand globs in a pathspec) and repo-root-relative, so no
+ * `:(literal)` magic is needed — and arc rejects git's `--` separator.
+ */
+export function arcAddArgs(paths: string[]): string[] {
+  return ['add', ...paths]
+}
+
+/**
+ * `arc reset HEAD <path>...` — unstage paths back to HEAD. arc has no `restore`;
+ * the explicit `HEAD` fills the leading `[BRANCH]` positional so a path is never
+ * misparsed as a branch.
+ */
+export function arcResetPathsArgs(paths: string[]): string[] {
+  return ['reset', 'HEAD', ...paths]
+}
+
+/**
+ * `arc checkout <rev> <path>...` — restore working-tree (and index) paths to
+ * their content at `rev`. arc rejects `--`, so paths are bare positionals; that
+ * is safe because arc never glob-expands them. Errors when a path is unknown at
+ * `rev` (e.g. an untracked or newly-added file), which the caller uses to route
+ * discard to a working-tree delete instead.
+ */
+export function arcCheckoutRestoreArgs(rev: string, paths: string[]): string[] {
+  return ['checkout', rev, ...paths]
+}

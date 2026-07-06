@@ -19,3 +19,20 @@ export function routeLocalVcsKind(path: string): VcsKind {
   }
   return 'git'
 }
+
+/**
+ * Resolve the arc repository (mount) root a local operation should run against,
+ * or `null` when the path is not arc-routed. arc reports and consumes
+ * repo-root-relative paths, so every arc source-control op runs at this root
+ * regardless of where the agent/worktree cwd sits inside the mount (an Orca arc
+ * worktree's path is `mount + projectSubpath`). Same flag/detection gate as
+ * {@link routeLocalVcsKind}, so the git path is never diverted when the flag is
+ * off.
+ */
+export function resolveLocalArcRoot(path: string): string | null {
+  if (!isArcVcsEnabled()) {
+    return null
+  }
+  const detection = detectVcs(path)
+  return detection.kind === 'arc' ? detection.root : null
+}

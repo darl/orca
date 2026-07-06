@@ -57,10 +57,18 @@ import {
   SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE
 } from '../providers/ssh-git-dispatch'
 import { checkIgnoredPaths } from '../git/check-ignored-paths'
-import { routeLocalVcsKind } from '../vcs/local-vcs-router'
+import { resolveLocalArcRoot } from '../vcs/local-vcs-router'
 import { getArcStatus } from '../arc/arc-status'
 import { getArcHistory } from '../arc/arc-history'
 import { getArcBranchDiff, getArcCommitDiff, getArcDiff } from '../arc/arc-diff'
+import {
+  bulkDiscardArcChanges,
+  bulkStageArcFiles,
+  bulkUnstageArcFiles,
+  discardArcChanges,
+  stageArcFile,
+  unstageArcFile
+} from '../arc/arc-stage'
 import {
   cancelGenerateCommitMessageLocal,
   cancelGeneratePullRequestFieldsLocal,
@@ -183,8 +191,9 @@ export class RuntimeGitCommands {
         ? provider.getStatus(target.worktree.path, options)
         : provider.getStatus(target.worktree.path)
     }
-    if (routeLocalVcsKind(target.worktree.path) === 'arc') {
-      return getArcStatus(target.worktree.path, options)
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      return getArcStatus(arcRoot, options)
     }
     const gitOptions = localGitOptionsForTarget(target)
     return options
@@ -238,8 +247,9 @@ export class RuntimeGitCommands {
       }
       return provider.getHistory(target.worktree.path, options)
     }
-    if (routeLocalVcsKind(target.worktree.path) === 'arc') {
-      return getArcHistory(target.worktree.path, options)
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      return getArcHistory(arcRoot, options)
     }
     return getGitHistory(target.worktree.path, {
       ...options,
@@ -331,8 +341,9 @@ export class RuntimeGitCommands {
       }
       return provider.getDiff(target.worktree.path, relativePath, staged, compareAgainstHead)
     }
-    if (routeLocalVcsKind(target.worktree.path) === 'arc') {
-      return getArcDiff(target.worktree.path, relativePath, staged, compareAgainstHead ?? false)
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      return getArcDiff(arcRoot, relativePath, staged, compareAgainstHead ?? false)
     }
     return getDiff(
       target.worktree.path,
@@ -525,8 +536,9 @@ export class RuntimeGitCommands {
         }
       )
     }
-    if (routeLocalVcsKind(target.worktree.path) === 'arc') {
-      return getArcBranchDiff(target.worktree.path, {
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      return getArcBranchDiff(arcRoot, {
         mergeBase: compare.mergeBase,
         headOid: compare.headOid,
         filePath: relativePath,
@@ -564,8 +576,9 @@ export class RuntimeGitCommands {
         oldPath: oldRelativePath
       })
     }
-    if (routeLocalVcsKind(target.worktree.path) === 'arc') {
-      return getArcCommitDiff(target.worktree.path, {
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      return getArcCommitDiff(arcRoot, {
         commitOid: args.commitOid,
         parentOid: args.parentOid,
         filePath: relativePath,
@@ -857,6 +870,11 @@ export class RuntimeGitCommands {
       await provider.stageFile(target.worktree.path, relativePath)
       return { ok: true }
     }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await stageArcFile(arcRoot, relativePath)
+      return { ok: true }
+    }
     await stageFile(target.worktree.path, relativePath, localGitOptionsForTarget(target))
     return { ok: true }
   }
@@ -870,6 +888,11 @@ export class RuntimeGitCommands {
         throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
       }
       await provider.unstageFile(target.worktree.path, relativePath)
+      return { ok: true }
+    }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await unstageArcFile(arcRoot, relativePath)
       return { ok: true }
     }
     await unstageFile(target.worktree.path, relativePath, localGitOptionsForTarget(target))
@@ -890,6 +913,11 @@ export class RuntimeGitCommands {
       await provider.bulkStageFiles(target.worktree.path, relativePaths)
       return { ok: true }
     }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await bulkStageArcFiles(arcRoot, relativePaths)
+      return { ok: true }
+    }
     await bulkStageFiles(target.worktree.path, relativePaths, localGitOptionsForTarget(target))
     return { ok: true }
   }
@@ -906,6 +934,11 @@ export class RuntimeGitCommands {
         throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
       }
       await provider.bulkUnstageFiles(target.worktree.path, relativePaths)
+      return { ok: true }
+    }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await bulkUnstageArcFiles(arcRoot, relativePaths)
       return { ok: true }
     }
     await bulkUnstageFiles(target.worktree.path, relativePaths, localGitOptionsForTarget(target))
@@ -926,6 +959,11 @@ export class RuntimeGitCommands {
       await provider.bulkDiscardChanges(target.worktree.path, relativePaths)
       return { ok: true }
     }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await bulkDiscardArcChanges(arcRoot, relativePaths)
+      return { ok: true }
+    }
     await bulkDiscardChanges(target.worktree.path, relativePaths, localGitOptionsForTarget(target))
     return { ok: true }
   }
@@ -939,6 +977,11 @@ export class RuntimeGitCommands {
         throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
       }
       await provider.discardChanges(target.worktree.path, relativePath)
+      return { ok: true }
+    }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await discardArcChanges(arcRoot, relativePath)
       return { ok: true }
     }
     await discardChanges(target.worktree.path, relativePath, localGitOptionsForTarget(target))
