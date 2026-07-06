@@ -193,6 +193,15 @@ export function arcCheckoutNewBranchArgs(branch: string, base: string): string[]
 }
 
 /**
+ * `arc checkout <branch>` — switch the worktree to an existing local branch. No
+ * trailing `--`: arc rejects the separator, and the branch name is validated for
+ * a leading `-` by the caller so it is never parsed as an option.
+ */
+export function arcCheckoutBranchArgs(branch: string): string[] {
+  return ['checkout', branch]
+}
+
+/**
  * `arc add <path>...` — stage file contents into the index. Paths are literal
  * (arc does not expand globs in a pathspec) and repo-root-relative, so no
  * `:(literal)` magic is needed — and arc rejects git's `--` separator.

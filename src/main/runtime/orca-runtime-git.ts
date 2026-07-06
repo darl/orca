@@ -62,6 +62,7 @@ import { getArcStatus } from '../arc/arc-status'
 import { getArcHistory } from '../arc/arc-history'
 import { getArcBranchDiff, getArcCommitDiff, getArcDiff } from '../arc/arc-diff'
 import { commitArcChanges } from '../arc/arc-commit'
+import { checkoutArcBranch, listArcLocalBranches } from '../arc/arc-branches'
 import {
   bulkDiscardArcChanges,
   bulkStageArcFiles,
@@ -311,6 +312,11 @@ export class RuntimeGitCommands {
       await provider.checkoutBranch(target.worktree.path, branch)
       return { ok: true, branch }
     }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await checkoutArcBranch(arcRoot, branch)
+      return { ok: true, branch }
+    }
     await checkoutBranch(target.worktree.path, branch, localGitOptionsForTarget(target))
     return { ok: true, branch }
   }
@@ -323,6 +329,10 @@ export class RuntimeGitCommands {
         throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
       }
       return provider.listLocalBranches(target.worktree.path)
+    }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      return listArcLocalBranches(arcRoot)
     }
     return listLocalBranches(target.worktree.path, localGitOptionsForTarget(target))
   }
