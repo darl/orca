@@ -4,6 +4,7 @@ import { removeSafeUntrackedDiscardTarget } from '../../shared/git-discard-path-
 import {
   arcAddArgs,
   arcCheckoutRestoreArgs,
+  arcErrorText,
   arcExecFileAsync,
   arcResetPathsArgs,
   type ArcExecOptions
@@ -23,16 +24,6 @@ const ARC_BULK_CHUNK_SIZE = 100
  */
 function execOptions(arcRoot: string, options: ArcStageExec): ArcExecOptions {
   return { cwd: arcRoot, ...(options.signal ? { signal: options.signal } : {}) }
-}
-
-function arcErrorText(error: unknown): string {
-  if (typeof error === 'object' && error) {
-    const stderr = (error as { stderr?: unknown }).stderr
-    if (typeof stderr === 'string' && stderr.length > 0) {
-      return stderr
-    }
-  }
-  return error instanceof Error ? error.message : String(error)
 }
 
 // arc prints this when a checkout target does not exist at the given revision —

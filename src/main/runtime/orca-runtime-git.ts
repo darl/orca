@@ -63,6 +63,7 @@ import { getArcHistory } from '../arc/arc-history'
 import { getArcBranchDiff, getArcCommitDiff, getArcDiff } from '../arc/arc-diff'
 import { commitArcChanges } from '../arc/arc-commit'
 import { checkoutArcBranch, listArcLocalBranches } from '../arc/arc-branches'
+import { fastForwardArc, fetchArc, pullArc, rebaseArcFromBase } from '../arc/arc-remote'
 import {
   bulkDiscardArcChanges,
   bulkStageArcFiles,
@@ -423,6 +424,11 @@ export class RuntimeGitCommands {
       await provider.fetchRemote(target.worktree.path, pushTarget)
       return { ok: true }
     }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await fetchArc(arcRoot)
+      return { ok: true }
+    }
     await gitFetch(target.worktree.path, pushTarget, localGitOptionsForTarget(target))
     return { ok: true }
   }
@@ -459,6 +465,11 @@ export class RuntimeGitCommands {
       await provider.pullBranch(target.worktree.path, pushTarget)
       return { ok: true }
     }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await pullArc(arcRoot)
+      return { ok: true }
+    }
     await gitPull(target.worktree.path, pushTarget, localGitOptionsForTarget(target))
     return { ok: true }
   }
@@ -476,6 +487,11 @@ export class RuntimeGitCommands {
       await provider.fastForwardBranch(target.worktree.path, pushTarget)
       return { ok: true }
     }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await fastForwardArc(arcRoot)
+      return { ok: true }
+    }
     await gitFastForward(target.worktree.path, pushTarget, localGitOptionsForTarget(target))
     return { ok: true }
   }
@@ -488,6 +504,11 @@ export class RuntimeGitCommands {
         throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
       }
       await provider.rebaseFromBase(target.worktree.path, baseRef)
+      return { ok: true }
+    }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await rebaseArcFromBase(arcRoot, baseRef)
       return { ok: true }
     }
     await gitPullRebaseFromBase(target.worktree.path, baseRef, localGitOptionsForTarget(target))

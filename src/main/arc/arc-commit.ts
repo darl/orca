@@ -5,7 +5,9 @@ type ArcCommitExec = { signal?: AbortSignal }
 /**
  * Read the useful message off whichever channel arc populated. Pre-commit/hook
  * failures land on stderr; "nothing to commit" lands on stdout — mirrors the git
- * commit error surfacing so the renderer shows the same shape of message.
+ * commit error surfacing so the renderer shows the same shape of message. Unlike
+ * the shared arcErrorText, commit must also consult stdout (that is where the
+ * empty-commit message goes).
  */
 function readCommitError(error: unknown): string {
   const field = (name: string): string | null => {

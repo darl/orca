@@ -87,6 +87,21 @@ export async function arcExecJson<T>(args: string[], options: ArcExecOptions): P
   }
 }
 
+/**
+ * Best available human-readable text from a failed arc invocation: the child
+ * process error carries the useful message on `stderr`, falling back to the
+ * thrown `Error` message. Shared by every arc op that surfaces failures.
+ */
+export function arcErrorText(error: unknown): string {
+  if (typeof error === 'object' && error) {
+    const stderr = (error as { stderr?: unknown }).stderr
+    if (typeof stderr === 'string' && stderr.length > 0) {
+      return stderr
+    }
+  }
+  return error instanceof Error ? error.message : String(error)
+}
+
 // ─── argv builders ──────────────────────────────────────────────────
 // Centralized so every call site shares one spelling of each arc command and
 // the read surface stays auditable. Mirrors the captured arc-fixtures shapes.
@@ -222,6 +237,32 @@ export function arcResetPathsArgs(paths: string[]): string[] {
 /** `arc commit -m <message>` — record the staged index as a new commit. */
 export function arcCommitArgs(message: string): string[] {
   return ['commit', '-m', message]
+}
+
+/** `arc fetch` — download refs for the current branch's upstream from arcadia. */
+export function arcFetchArgs(): string[] {
+  return ['fetch']
+}
+
+/**
+ * `arc pull [--ff-only] [--rebase]` — fetch and integrate the current branch
+ * with its upstream. arc resolves the single arcadia remote and the branch's
+ * upstream itself, so no remote/branch positional is needed.
+ */
+export function arcPullArgs(options: { ffOnly?: boolean; rebase?: boolean } = {}): string[] {
+  const args = ['pull']
+  if (options.ffOnly) {
+    args.push('--ff-only')
+  }
+  if (options.rebase) {
+    args.push('--rebase')
+  }
+  return args
+}
+
+/** `arc rebase <upstream>` — reapply the current branch's commits onto `upstream`. */
+export function arcRebaseArgs(upstream: string): string[] {
+  return ['rebase', upstream]
 }
 
 /**
