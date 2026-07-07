@@ -64,6 +64,7 @@ import { getArcBranchDiff, getArcCommitDiff, getArcDiff } from '../arc/arc-diff'
 import { commitArcChanges } from '../arc/arc-commit'
 import { checkoutArcBranch, listArcLocalBranches } from '../arc/arc-branches'
 import { fastForwardArc, fetchArc, pullArc, rebaseArcFromBase } from '../arc/arc-remote'
+import { abortArcConflict, getArcConflictOperation } from '../arc/arc-conflict'
 import {
   bulkDiscardArcChanges,
   bulkStageArcFiles,
@@ -269,6 +270,10 @@ export class RuntimeGitCommands {
       }
       return provider.detectConflictOperation(target.worktree.path)
     }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      return getArcConflictOperation(arcRoot)
+    }
     return detectConflictOperation(target.worktree.path)
   }
 
@@ -280,6 +285,11 @@ export class RuntimeGitCommands {
         throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
       }
       await provider.abortMerge(target.worktree.path)
+      return { ok: true }
+    }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await abortArcConflict(arcRoot)
       return { ok: true }
     }
     await abortMerge(target.worktree.path, localGitOptionsForTarget(target))
@@ -294,6 +304,11 @@ export class RuntimeGitCommands {
         throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
       }
       await provider.abortRebase(target.worktree.path)
+      return { ok: true }
+    }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await abortArcConflict(arcRoot)
       return { ok: true }
     }
     await abortRebase(target.worktree.path, localGitOptionsForTarget(target))

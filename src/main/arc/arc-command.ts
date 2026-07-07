@@ -265,6 +265,25 @@ export function arcRebaseArgs(upstream: string): string[] {
   return ['rebase', upstream]
 }
 
+/** `arc rebase --abort` — abort an in-progress rebase, restoring the original branch. */
+export function arcRebaseAbortArgs(): string[] {
+  return ['rebase', '--abort']
+}
+
+/** `arc cherry-pick --abort` — abort an in-progress cherry-pick sequence. */
+export function arcCherryPickAbortArgs(): string[] {
+  return ['cherry-pick', '--abort']
+}
+
+/**
+ * `arc up --abort` — abort an in-progress `arc up` conflict resolution (arc's
+ * merge-with-trunk flow), reconstructing the pre-up state. arc has no
+ * `merge --abort`; `up --abort` is its documented merge-conflict abort.
+ */
+export function arcUpAbortArgs(): string[] {
+  return ['up', '--abort']
+}
+
 /**
  * `arc checkout <rev> <path>...` — restore working-tree (and index) paths to
  * their content at `rev`. arc rejects `--`, so paths are bare positionals; that
