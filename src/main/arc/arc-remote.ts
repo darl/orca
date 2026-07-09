@@ -1,23 +1,20 @@
 import {
   arcErrorText,
   arcExecFileAsync,
+  arcExecOptions,
   arcFetchArgs,
   arcPullArgs,
   arcRebaseArgs,
-  type ArcExecOptions
+  type ArcOpExec
 } from './arc-command'
 
-type ArcRemoteExec = { signal?: AbortSignal }
-
-function execOptions(arcRoot: string, options: ArcRemoteExec): ArcExecOptions {
-  return { cwd: arcRoot, ...(options.signal ? { signal: options.signal } : {}) }
-}
+type ArcRemoteExec = ArcOpExec
 
 // Surface arc's own message (it is descriptive: diverged branch, conflict,
 // auth) rather than a synthesized one, so the renderer shows what arc reported.
 async function runRemote(argv: string[], arcRoot: string, options: ArcRemoteExec): Promise<void> {
   try {
-    await arcExecFileAsync(argv, execOptions(arcRoot, options))
+    await arcExecFileAsync(argv, arcExecOptions(arcRoot, options))
   } catch (error) {
     throw new Error(arcErrorText(error))
   }

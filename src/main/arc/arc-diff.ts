@@ -74,39 +74,31 @@ export async function getArcDiff(
   compareAgainstHead = false,
   options: ArcDiffExec = {}
 ): Promise<GitDiffResult> {
-  let originalContent = ''
-  let modifiedContent = ''
-  let originalIsBinary = false
-  let modifiedIsBinary = false
+  let left: GitBlobReadResult = EMPTY_BLOB
+  let right: GitBlobReadResult = EMPTY_BLOB
 
   try {
-    const leftBlob =
-      staged || compareAgainstHead
-        ? await readArcBlob(worktreePath, 'HEAD', filePath, options)
-        : await readArcUnstagedLeftBlob(worktreePath, filePath, options)
-    originalContent = leftBlob.content
-    originalIsBinary = leftBlob.isBinary
-
+    // Both sides are independent reads, so fetch them concurrently. Staged
+    // compares HEAD → index; otherwise the left is the index-or-HEAD (or HEAD
+    // when comparing against HEAD) and the right is the working-tree file.
     if (staged) {
-      const rightBlob = await readArcBlob(worktreePath, '', filePath, options)
-      modifiedContent = rightBlob.content
-      modifiedIsBinary = rightBlob.isBinary
+      ;[left, right] = await Promise.all([
+        readArcBlob(worktreePath, 'HEAD', filePath, options),
+        readArcBlob(worktreePath, '', filePath, options)
+      ])
     } else {
-      const workingTreeBlob = await readWorkingTreeFile(join(worktreePath, filePath))
-      modifiedContent = workingTreeBlob.content
-      modifiedIsBinary = workingTreeBlob.isBinary
+      ;[left, right] = await Promise.all([
+        compareAgainstHead
+          ? readArcBlob(worktreePath, 'HEAD', filePath, options)
+          : readArcUnstagedLeftBlob(worktreePath, filePath, options),
+        readWorkingTreeFile(join(worktreePath, filePath))
+      ])
     }
   } catch {
     // Fall through to whatever was read; buildDiffResult tolerates empties.
   }
 
-  return buildDiffResult(
-    originalContent,
-    modifiedContent,
-    originalIsBinary,
-    modifiedIsBinary,
-    filePath
-  )
+  return buildDiffResult(left.content, right.content, left.isBinary, right.isBinary, filePath)
 }
 
 /** Diff a file between two commits (merge-base → head) in an arc worktree. */
@@ -117,8 +109,10 @@ export async function getArcBranchDiff(
 ): Promise<GitDiffResult> {
   try {
     const leftPath = args.oldPath ?? args.filePath
-    const leftBlob = await readArcBlob(worktreePath, args.mergeBase, leftPath, options)
-    const rightBlob = await readArcBlob(worktreePath, args.headOid, args.filePath, options)
+    const [leftBlob, rightBlob] = await Promise.all([
+      readArcBlob(worktreePath, args.mergeBase, leftPath, options),
+      readArcBlob(worktreePath, args.headOid, args.filePath, options)
+    ])
     return buildDiffResult(
       leftBlob.content,
       rightBlob.content,
@@ -139,10 +133,12 @@ export async function getArcCommitDiff(
 ): Promise<GitDiffResult> {
   try {
     const leftPath = args.oldPath ?? args.filePath
-    const leftBlob = args.parentOid
-      ? await readArcBlob(worktreePath, args.parentOid, leftPath, options)
-      : EMPTY_BLOB
-    const rightBlob = await readArcBlob(worktreePath, args.commitOid, args.filePath, options)
+    const [leftBlob, rightBlob] = await Promise.all([
+      args.parentOid
+        ? readArcBlob(worktreePath, args.parentOid, leftPath, options)
+        : Promise.resolve(EMPTY_BLOB),
+      readArcBlob(worktreePath, args.commitOid, args.filePath, options)
+    ])
     return buildDiffResult(
       leftBlob.content,
       rightBlob.content,

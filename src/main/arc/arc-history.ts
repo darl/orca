@@ -9,6 +9,7 @@ import { shortGitHash } from '../../shared/git-history-log-parser'
 import {
   arcExecFileAsync,
   arcExecJson,
+  arcExecOptions,
   arcInfoArgs,
   arcLogArgs,
   arcMergeBaseArgs
@@ -33,10 +34,10 @@ async function resolveArcMergeBase(
   signal?: AbortSignal
 ): Promise<string | undefined> {
   try {
-    const { stdout } = await arcExecFileAsync(arcMergeBaseArgs(a, b), {
-      cwd: worktreePath,
-      ...(signal ? { signal } : {})
-    })
+    const { stdout } = await arcExecFileAsync(
+      arcMergeBaseArgs(a, b),
+      arcExecOptions(worktreePath, { signal })
+    )
     return stdout.trim() || undefined
   } catch {
     return undefined
@@ -55,8 +56,13 @@ export async function getArcHistory(
   options: GitHistoryOptions & { signal?: AbortSignal } = {}
 ): Promise<GitHistoryResult> {
   const limit = clampLimit(options.limit)
-  const execOptions = { cwd: worktreePath, ...(options.signal ? { signal: options.signal } : {}) }
-  const info = await arcExecJson<ArcInfoJson>(arcInfoArgs(), execOptions)
+  const execOptions = arcExecOptions(worktreePath, options)
+  // Identity (arc info) and the commit list (arc log) are independent — fetch
+  // them concurrently; only merge-base below depends on the info result.
+  const [info, commits] = await Promise.all([
+    arcExecJson<ArcInfoJson>(arcInfoArgs(), execOptions),
+    arcExecJson<ArcLogCommit[]>(arcLogArgs({ limit: limit + 1 }), execOptions)
+  ])
   const headOid = info.hash?.trim() ?? ''
   if (!headOid) {
     return {
@@ -96,7 +102,6 @@ export async function getArcHistory(
     )
   }
 
-  const commits = await arcExecJson<ArcLogCommit[]>(arcLogArgs({ limit: limit + 1 }), execOptions)
   const parsed = parseArcLog(commits)
   const items = parsed.slice(0, limit)
 

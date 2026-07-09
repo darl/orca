@@ -3,17 +3,22 @@ import {
   arcCherryPickAbortArgs,
   arcExecFileAsync,
   arcExecJson,
+  arcExecOptions,
   arcRebaseAbortArgs,
   arcStatusArgs,
   arcUpAbortArgs,
-  type ArcExecOptions
+  type ArcOpExec
 } from './arc-command'
 import { parseArcStatus, type ArcStatusJson } from './arc-status-parser'
 
-type ArcConflictExec = { signal?: AbortSignal }
+type ArcConflictExec = ArcOpExec
 
-function execOptions(arcRoot: string, options: ArcConflictExec): ArcExecOptions {
-  return { cwd: arcRoot, ...(options.signal ? { signal: options.signal } : {}) }
+// arc's abort command per in-progress sequencer state (arc has no merge --abort;
+// up --abort is its merge-conflict abort). Operations with no abort map to no-op.
+const ABORT_ARGS_BY_OPERATION: Partial<Record<GitConflictOperation, () => string[]>> = {
+  rebase: arcRebaseAbortArgs,
+  'cherry-pick': arcCherryPickAbortArgs,
+  merge: arcUpAbortArgs
 }
 
 /**
@@ -27,7 +32,7 @@ export async function getArcConflictOperation(
 ): Promise<GitConflictOperation> {
   const json = await arcExecJson<ArcStatusJson>(
     arcStatusArgs({ branch: true }),
-    execOptions(arcRoot, options)
+    arcExecOptions(arcRoot, options)
   )
   return parseArcStatus(json).conflictOperation
 }
@@ -45,16 +50,9 @@ export async function abortArcConflict(
   options: ArcConflictExec = {}
 ): Promise<void> {
   const operation = await getArcConflictOperation(arcRoot, options)
-  const argv =
-    operation === 'rebase'
-      ? arcRebaseAbortArgs()
-      : operation === 'cherry-pick'
-        ? arcCherryPickAbortArgs()
-        : operation === 'merge'
-          ? arcUpAbortArgs()
-          : null
-  if (!argv) {
+  const buildArgs = ABORT_ARGS_BY_OPERATION[operation]
+  if (!buildArgs) {
     return
   }
-  await arcExecFileAsync(argv, execOptions(arcRoot, options))
+  await arcExecFileAsync(buildArgs(), arcExecOptions(arcRoot, options))
 }

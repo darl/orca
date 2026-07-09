@@ -1,8 +1,15 @@
 import type { RuntimeGitLocalBranches } from '../../shared/runtime-types'
-import { assertValidBranchName } from '../git/checkout'
-import { arcBranchArgs, arcCheckoutBranchArgs, arcExecFileAsync, arcExecJson } from './arc-command'
+import { assertValidBranchName, sortBranchesCurrentFirst } from '../git/checkout'
+import {
+  arcBranchArgs,
+  arcCheckoutBranchArgs,
+  arcExecFileAsync,
+  arcExecJson,
+  arcExecOptions,
+  type ArcOpExec
+} from './arc-command'
 
-type ArcBranchExec = { signal?: AbortSignal }
+type ArcBranchExec = ArcOpExec
 
 // One entry of `arc branch --json -vv`. `local` marks a local branch (vs a
 // remote-tracking one); `current` marks the checked-out branch.
@@ -29,17 +36,7 @@ export function parseArcBranches(entries: ArcBranchJson[]): RuntimeGitLocalBranc
     }
     branches.push(entry.name)
   }
-  // Surface the checked-out branch first so the picker reads "you are here" at
-  // the top, matching the git branch list ordering.
-  branches.sort((a, b) => {
-    if (a === current) {
-      return -1
-    }
-    if (b === current) {
-      return 1
-    }
-    return 0
-  })
+  sortBranchesCurrentFirst(branches, current)
   return { current, branches }
 }
 
@@ -47,10 +44,10 @@ export async function listArcLocalBranches(
   arcRoot: string,
   options: ArcBranchExec = {}
 ): Promise<RuntimeGitLocalBranches> {
-  const entries = await arcExecJson<ArcBranchJson[]>(arcBranchArgs(), {
-    cwd: arcRoot,
-    ...(options.signal ? { signal: options.signal } : {})
-  })
+  const entries = await arcExecJson<ArcBranchJson[]>(
+    arcBranchArgs(),
+    arcExecOptions(arcRoot, options)
+  )
   return parseArcBranches(entries)
 }
 
@@ -66,8 +63,5 @@ export async function checkoutArcBranch(
   options: ArcBranchExec = {}
 ): Promise<void> {
   assertValidBranchName(branch)
-  await arcExecFileAsync(arcCheckoutBranchArgs(branch), {
-    cwd: arcRoot,
-    ...(options.signal ? { signal: options.signal } : {})
-  })
+  await arcExecFileAsync(arcCheckoutBranchArgs(branch), arcExecOptions(arcRoot, options))
 }

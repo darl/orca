@@ -53,7 +53,7 @@ import { parseGitRevListFirstParentOid } from '../../shared/git-rev-list-output'
 
 export const MAX_GIT_SHOW_BYTES = 10 * 1024 * 1024
 const MAX_STAGED_COMMIT_CONTEXT_BYTES = MAX_GIT_SHOW_BYTES
-const BULK_CHUNK_SIZE = 100
+export const BULK_CHUNK_SIZE = 100
 const EFFECTIVE_UPSTREAM_NEGATIVE_CACHE_TTL_MS = 5 * 60_000
 const MAX_EFFECTIVE_UPSTREAM_NEGATIVE_CACHE_ENTRIES = 512
 

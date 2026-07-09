@@ -1,30 +1,25 @@
 import { rm } from 'fs/promises'
 import { join } from 'path'
 import { removeSafeUntrackedDiscardTarget } from '../../shared/git-discard-path-safety'
+import { BULK_CHUNK_SIZE } from '../git/status'
 import {
   arcAddArgs,
   arcCheckoutRestoreArgs,
   arcErrorText,
   arcExecFileAsync,
+  arcExecOptions,
   arcResetPathsArgs,
-  type ArcExecOptions
+  type ArcOpExec
 } from './arc-command'
 
-type ArcStageExec = { signal?: AbortSignal }
+type ArcStageExec = ArcOpExec
 
-// Batch size for `arc add` / `arc reset` argv so a "stage all" on a large
-// changeset never overflows the process argument limit (E2BIG).
-const ARC_BULK_CHUNK_SIZE = 100
-
-/**
- * All arc source-control ops run at the arc repository (mount) root and take
- * repo-root-relative paths — the same paths `arc status` emits. arc resolves
- * pathspecs relative to cwd, so running anywhere but the root would mis-resolve
- * the repo-root-relative paths the renderer echoes back.
- */
-function execOptions(arcRoot: string, options: ArcStageExec): ArcExecOptions {
-  return { cwd: arcRoot, ...(options.signal ? { signal: options.signal } : {}) }
-}
+// All arc source-control ops run at the arc repository (mount) root and take
+// repo-root-relative paths — the same paths `arc status` emits. arc resolves
+// pathspecs relative to cwd, so running anywhere but the root would mis-resolve
+// the repo-root-relative paths the renderer echoes back. execOptions is the
+// shared arcExecOptions; the chunk size is git's shared E2BIG batch bound.
+const execOptions = arcExecOptions
 
 // arc prints this when a checkout target does not exist at the given revision —
 // the signal that a discard target is untracked/newly-added and must be deleted
@@ -54,15 +49,26 @@ export async function unstageArcFile(
   await arcExecFileAsync(arcResetPathsArgs([filePath]), execOptions(arcRoot, options))
 }
 
+// Run one arc index command over many paths in argv-bounded chunks (E2BIG
+// guard). Chunks run serially — they mutate the same index and arc locks it.
+async function bulkArcIndexOp(
+  arcRoot: string,
+  filePaths: string[],
+  buildArgs: (paths: string[]) => string[],
+  options: ArcStageExec
+): Promise<void> {
+  for (let i = 0; i < filePaths.length; i += BULK_CHUNK_SIZE) {
+    const chunk = filePaths.slice(i, i + BULK_CHUNK_SIZE)
+    await arcExecFileAsync(buildArgs(chunk), execOptions(arcRoot, options))
+  }
+}
+
 export async function bulkStageArcFiles(
   arcRoot: string,
   filePaths: string[],
   options: ArcStageExec = {}
 ): Promise<void> {
-  for (let i = 0; i < filePaths.length; i += ARC_BULK_CHUNK_SIZE) {
-    const chunk = filePaths.slice(i, i + ARC_BULK_CHUNK_SIZE)
-    await arcExecFileAsync(arcAddArgs(chunk), execOptions(arcRoot, options))
-  }
+  await bulkArcIndexOp(arcRoot, filePaths, arcAddArgs, options)
 }
 
 export async function bulkUnstageArcFiles(
@@ -70,10 +76,7 @@ export async function bulkUnstageArcFiles(
   filePaths: string[],
   options: ArcStageExec = {}
 ): Promise<void> {
-  for (let i = 0; i < filePaths.length; i += ARC_BULK_CHUNK_SIZE) {
-    const chunk = filePaths.slice(i, i + ARC_BULK_CHUNK_SIZE)
-    await arcExecFileAsync(arcResetPathsArgs(chunk), execOptions(arcRoot, options))
-  }
+  await bulkArcIndexOp(arcRoot, filePaths, arcResetPathsArgs, options)
 }
 
 /**
@@ -123,8 +126,8 @@ export async function bulkDiscardArcChanges(
   if (filePaths.length === 0) {
     return
   }
-  for (let i = 0; i < filePaths.length; i += ARC_BULK_CHUNK_SIZE) {
-    const chunk = filePaths.slice(i, i + ARC_BULK_CHUNK_SIZE)
+  for (let i = 0; i < filePaths.length; i += BULK_CHUNK_SIZE) {
+    const chunk = filePaths.slice(i, i + BULK_CHUNK_SIZE)
     try {
       await arcExecFileAsync(arcCheckoutRestoreArgs('HEAD', chunk), execOptions(arcRoot, options))
     } catch (error) {

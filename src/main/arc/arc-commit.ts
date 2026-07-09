@@ -1,28 +1,12 @@
-import { arcCommitArgs, arcExecFileAsync } from './arc-command'
+import {
+  arcCommitArgs,
+  arcErrorText,
+  arcExecFileAsync,
+  arcExecOptions,
+  type ArcOpExec
+} from './arc-command'
 
-type ArcCommitExec = { signal?: AbortSignal }
-
-/**
- * Read the useful message off whichever channel arc populated. Pre-commit/hook
- * failures land on stderr; "nothing to commit" lands on stdout — mirrors the git
- * commit error surfacing so the renderer shows the same shape of message. Unlike
- * the shared arcErrorText, commit must also consult stdout (that is where the
- * empty-commit message goes).
- */
-function readCommitError(error: unknown): string {
-  const field = (name: string): string | null => {
-    if (typeof error === 'object' && error && name in error) {
-      const value = (error as Record<string, unknown>)[name]
-      if (typeof value === 'string' && value.length > 0) {
-        return value
-      }
-    }
-    return null
-  }
-  return (
-    field('stderr') ?? field('stdout') ?? (error instanceof Error ? error.message : 'Commit failed')
-  )
-}
+type ArcCommitExec = ArcOpExec
 
 /**
  * Commit the staged index in an arc repo. Runs at the arc repository (mount)
@@ -37,12 +21,10 @@ export async function commitArcChanges(
   options: ArcCommitExec = {}
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await arcExecFileAsync(arcCommitArgs(message), {
-      cwd: arcRoot,
-      ...(options.signal ? { signal: options.signal } : {})
-    })
+    await arcExecFileAsync(arcCommitArgs(message), arcExecOptions(arcRoot, options))
     return { success: true }
   } catch (error) {
-    return { success: false, error: readCommitError(error) }
+    // arcErrorText reads stderr (hook failures) then stdout ("nothing to commit").
+    return { success: false, error: arcErrorText(error) }
   }
 }

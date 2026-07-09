@@ -1,6 +1,6 @@
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import { DEFAULT_GIT_MAX_BUFFER } from '../git/runner'
+import { DEFAULT_GIT_MAX_BUFFER, extractExecError } from '../git/runner'
 
 const execFileAsync = promisify(execFile)
 
@@ -15,6 +15,18 @@ export type ArcExecOptions = {
   timeout?: number
   maxBuffer?: number
   env?: NodeJS.ProcessEnv
+}
+
+/** Per-call knobs an arc op forwards from the runtime (just cancellation today). */
+export type ArcOpExec = { signal?: AbortSignal }
+
+/**
+ * Build {@link ArcExecOptions} for an arc op running at `cwd` (always the arc
+ * repository/mount root). Single source for the `{ cwd, signal? }` shape every
+ * arc module needs, so cancellation is threaded uniformly.
+ */
+export function arcExecOptions(cwd: string, options: ArcOpExec = {}): ArcExecOptions {
+  return { cwd, ...(options.signal ? { signal: options.signal } : {}) }
 }
 
 /**
@@ -88,18 +100,14 @@ export async function arcExecJson<T>(args: string[], options: ArcExecOptions): P
 }
 
 /**
- * Best available human-readable text from a failed arc invocation: the child
- * process error carries the useful message on `stderr`, falling back to the
- * thrown `Error` message. Shared by every arc op that surfaces failures.
+ * Best available human-readable text from a failed arc invocation. Delegates to
+ * the shared {@link extractExecError}, which decodes both string and Buffer
+ * stderr channels (arc's blob/patch reads reject with Buffer output) and falls
+ * back to the thrown message.
  */
 export function arcErrorText(error: unknown): string {
-  if (typeof error === 'object' && error) {
-    const stderr = (error as { stderr?: unknown }).stderr
-    if (typeof stderr === 'string' && stderr.length > 0) {
-      return stderr
-    }
-  }
-  return error instanceof Error ? error.message : String(error)
+  const { stderr, stdout } = extractExecError(error)
+  return stderr || stdout
 }
 
 // ─── argv builders ──────────────────────────────────────────────────

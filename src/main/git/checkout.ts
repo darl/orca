@@ -58,8 +58,16 @@ export async function listLocalBranches(
     }
     branches.push(name)
   }
-  // Why: surface the checked-out branch first so the picker reads "you are here"
-  // at the top, then the rest in git's ref order.
+  sortBranchesCurrentFirst(branches, current)
+  return { current, branches }
+}
+
+/**
+ * Stable in-place sort that surfaces the checked-out branch first so a branch
+ * picker reads "you are here" at the top, then the rest in source order. Shared
+ * by the git and arc branch listers.
+ */
+export function sortBranchesCurrentFirst(branches: string[], current: string | null): void {
   branches.sort((a, b) => {
     if (a === current) {
       return -1
@@ -69,5 +77,4 @@ export async function listLocalBranches(
     }
     return 0
   })
-  return { current, branches }
 }
