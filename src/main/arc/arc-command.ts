@@ -239,6 +239,16 @@ export function arcCommitArgs(message: string): string[] {
   return ['commit', '-m', message]
 }
 
+/** `arc diff --cached --name-status` — staged file list with change kinds. */
+export function arcDiffCachedNameStatusArgs(): string[] {
+  return ['diff', '--cached', '--name-status']
+}
+
+/** `arc diff --cached --no-color` — staged patch (arc emits a patch by default). */
+export function arcDiffCachedPatchArgs(): string[] {
+  return ['diff', '--cached', '--no-color']
+}
+
 /** `arc fetch` — download refs for the current branch's upstream from arcadia. */
 export function arcFetchArgs(): string[] {
   return ['fetch']

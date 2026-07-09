@@ -58,7 +58,8 @@ import {
 } from '../providers/ssh-git-dispatch'
 import { checkIgnoredPaths } from '../git/check-ignored-paths'
 import { resolveLocalArcRoot } from '../vcs/local-vcs-router'
-import { getArcStatus } from '../arc/arc-status'
+import { getArcStatus, getArcUpstreamStatus } from '../arc/arc-status'
+import { getArcStagedCommitContext } from '../arc/arc-commit-context'
 import { getArcHistory } from '../arc/arc-history'
 import { getArcBranchDiff, getArcCommitDiff, getArcDiff } from '../arc/arc-diff'
 import { commitArcChanges } from '../arc/arc-commit'
@@ -423,6 +424,10 @@ export class RuntimeGitCommands {
       }
       return provider.getUpstreamStatus(target.worktree.path, pushTarget)
     }
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      return getArcUpstreamStatus(arcRoot)
+    }
     return getUpstreamStatus(target.worktree.path, pushTarget, localGitOptionsForTarget(target))
   }
 
@@ -719,7 +724,10 @@ export class RuntimeGitCommands {
 
     let context: CommitMessageDraftContext | null
     try {
-      context = await getStagedCommitContext(target.worktree.path, localGitOptionsForTarget(target))
+      const arcRoot = resolveLocalArcRoot(target.worktree.path)
+      context = arcRoot
+        ? await getArcStagedCommitContext(arcRoot)
+        : await getStagedCommitContext(target.worktree.path, localGitOptionsForTarget(target))
     } catch (error) {
       console.error('[runtime-git] Failed to read staged commit context:', error)
       return { success: false, error: 'Failed to read staged changes.' }

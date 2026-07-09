@@ -57,6 +57,8 @@ import {
   getCommitCompare,
   getCommitDiff
 } from '../git/status'
+import { resolveLocalArcRoot } from '../vcs/local-vcs-router'
+import { getArcStagedCommitContext } from '../arc/arc-commit-context'
 import { getHistory } from '../git/history'
 import {
   cancelGenerateCommitMessageLocal,
@@ -1363,7 +1365,10 @@ export function registerFilesystemHandlers(
       )
       let context
       try {
-        context = await getStagedCommitContext(worktreePath, gitOptions)
+        const arcRoot = resolveLocalArcRoot(worktreePath)
+        context = arcRoot
+          ? await getArcStagedCommitContext(arcRoot)
+          : await getStagedCommitContext(worktreePath, gitOptions)
       } catch (error) {
         console.error('[filesystem] Failed to read staged commit context:', error)
         return {

@@ -574,7 +574,7 @@ import {
 } from '../git/repo'
 import { detectLocalRepoOpen } from '../vcs/local-repo-open'
 import { detectVcs } from '../vcs/detect-vcs'
-import { routeLocalVcsKind } from '../vcs/local-vcs-router'
+import { resolveLocalArcRoot, routeLocalVcsKind } from '../vcs/local-vcs-router'
 import {
   addArcWorktree,
   assertArcWorktreeRemovable,
@@ -10168,6 +10168,11 @@ export class OrcaRuntimeService {
     }
     if (repo.connectionId) {
       return this.getRemoteRepoBaseRefDefault(repo)
+    }
+    // arc's mainline is `trunk`; the git probes (origin/main, …) never match on
+    // an arc mount and would resolve null. arc has a single arcadia remote.
+    if (resolveLocalArcRoot(repo.path)) {
+      return { defaultBaseRef: 'trunk', remoteCount: 1 }
     }
     const [defaultBaseRef, remoteCount] = await Promise.all([
       getBaseRefDefault(repo.path),

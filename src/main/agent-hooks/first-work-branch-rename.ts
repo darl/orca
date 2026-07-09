@@ -15,6 +15,7 @@ import {
 import { getCommitMessageModelDiscoveryHostKey } from '../../shared/commit-message-host-key'
 import { computeBranchName, getConfiguredBranchPrefix } from '../ipc/worktree-logic'
 import { gitExecFileAsync } from '../git/runner'
+import { resolveLocalArcRoot } from '../vcs/local-vcs-router'
 import { getGitUsername } from '../git/repo'
 import { getSshGitUsername } from '../git/git-username'
 import { getSshGitProvider } from '../providers/ssh-git-dispatch'
@@ -186,6 +187,13 @@ async function runAutoRename(
     return stop('unresolved repo or worktree id')
   }
   const worktreePath = parsed.worktreePath
+
+  // The rename flow is git plumbing throughout (rev-parse/show-ref/branch -m
+  // and the upstream probe); arc has no equivalent wired yet. Skip cleanly
+  // (settled) so the hook never runs git against an arc FUSE mount each turn.
+  if (!repo.connectionId && resolveLocalArcRoot(worktreePath)) {
+    return stop('arc worktree branch auto-rename is not supported yet', true)
+  }
 
   const provider = repo.connectionId ? (getSshGitProvider(repo.connectionId) ?? null) : null
   if (repo.connectionId && !provider) {

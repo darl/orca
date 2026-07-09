@@ -1,5 +1,5 @@
 import type { GitProviderStatusOptions } from '../providers/types'
-import type { GitStatusResult } from '../../shared/git-status-types'
+import type { GitStatusResult, GitUpstreamStatus } from '../../shared/git-status-types'
 import { buildGitStatusResult } from '../../shared/git-status-result-builder'
 import { arcExecJson, arcStatusArgs } from './arc-command'
 import { parseArcStatus, type ArcStatusJson } from './arc-status-parser'
@@ -40,4 +40,25 @@ export async function getArcStatus(
     statusLength: 0,
     upstream
   })
+}
+
+/**
+ * Standalone upstream refresh for an arc worktree (the explicit
+ * upstream-status RPC, separate from a full status read). arc reports
+ * ahead/behind inline in `branch_info`, so this reuses the same
+ * status-derived fold as {@link getArcStatus} — `hasUpstream` is true exactly
+ * when the branch tracks an `arcadia/<branch>` remote. arc has a single remote,
+ * so any `pushTarget` selection is inert and ignored.
+ */
+export async function getArcUpstreamStatus(worktreePath: string): Promise<GitUpstreamStatus> {
+  const json = await arcExecJson<ArcStatusJson>(arcStatusArgs({ branch: true }), {
+    cwd: worktreePath
+  })
+  const fold = deriveArcUpstreamFold(parseArcStatus(json))
+  return {
+    hasUpstream: fold.upstreamName !== undefined,
+    ...(fold.upstreamName ? { upstreamName: fold.upstreamName } : {}),
+    ahead: fold.ahead,
+    behind: fold.behind
+  }
 }
