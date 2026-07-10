@@ -806,6 +806,12 @@ export class RuntimeGitCommands {
     }
     let context: Awaited<ReturnType<typeof getPullRequestDraftContext>>
     try {
+      if (!target.connectionId) {
+        // Local PR-field drafting shells raw git against the worktree; arc has
+        // no PR-draft backend yet, so fail with the capability name instead of
+        // running git against the FUSE mount.
+        assertLocalArcOpUnsupported(target.worktree.path, 'Pull request field generation')
+      }
       const currentBody = await resolveHostedReviewBodyForGeneration({
         body: input.body,
         repoPath: target.worktree.path,

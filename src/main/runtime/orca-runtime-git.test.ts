@@ -600,6 +600,7 @@ describe('RuntimeGitCommands arc-unsupported guards', () => {
   beforeEach(() => {
     arcWorktree = realpathSync(mkdtempSync(join(tmpdir(), 'orca-runtime-arc-')))
     mkdirSync(join(arcWorktree, '.arc'), { recursive: true })
+    mocks.getPullRequestDraftContext.mockClear()
     clearVcsDetectionCache()
     process.env.ORCA_ARC_VCS = '1'
   })
@@ -642,5 +643,24 @@ describe('RuntimeGitCommands arc-unsupported guards', () => {
     await expect(makeArcCommands().pushRuntimeGit('id:wt-1')).rejects.toThrow(
       'Push is not supported for arc worktrees yet'
     )
+  })
+
+  it('reports PR-field generation as arc-unsupported instead of shelling git', async () => {
+    const result = await makeArcCommands().generateRuntimePullRequestFields(
+      'id:wt-1',
+      { base: 'trunk', title: '', body: '', draft: false },
+      {
+        sourceControlAiResolvedParams: {
+          agentId: 'codex',
+          model: 'gpt-5.5',
+          thinkingLevel: 'high'
+        }
+      }
+    )
+    expect(result).toEqual({
+      success: false,
+      error: 'Pull request field generation is not supported for arc worktrees yet'
+    })
+    expect(mocks.getPullRequestDraftContext).not.toHaveBeenCalled()
   })
 })
