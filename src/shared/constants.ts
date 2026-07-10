@@ -353,6 +353,10 @@ export function getDefaultSettings(homedir: string): GlobalSettings {
     experimentalNewWorktreeCardStyle: false,
     compactWorktreeCards: false,
     experimentalWorktreeSymlinks: false,
+    // Why: off by default — the arc VCS backend is opt-in and stays off until
+    // validated on real Arcadia trees (the ORCA_ARC_VCS env flag still forces
+    // it on for dev dogfooding).
+    arcVcs: false,
     // Why: local desktop remains the default server until the user explicitly
     // selects a saved runtime environment.
     activeRuntimeEnvironmentId: null,

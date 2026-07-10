@@ -2807,6 +2807,12 @@ export type GlobalSettings = {
    *  configuration surface and edge cases (conflicts with existing paths,
    *  cleanup on worktree delete) are still being worked out. */
   experimentalWorktreeSymlinks: boolean
+  /** Experimental: route version-control operations through the Yandex `arc`
+   *  CLI when a worktree is an arc working copy (otherwise git is used). Opt-in
+   *  and default-off — the arc backend graduates from the `ORCA_ARC_VCS` dev env
+   *  flag to this toggle, and stays off until validated on real Arcadia trees.
+   *  Read in main via `isArcVcsEnabled`, which ORs this with the env flag. */
+  arcVcs: boolean
 
   /** Active non-local runtime environment for client-routed RPC. `null`
    *  preserves the current local desktop behavior. */

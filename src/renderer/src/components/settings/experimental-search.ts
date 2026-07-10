@@ -4,6 +4,7 @@ import { translate } from '@/i18n/i18n'
 import { translateSearchKeyword } from './settings-search-keywords'
 import { getNewWorktreeCardStyleSearchEntry } from './new-worktree-card-style-search-entry'
 import { getNativeChatExperimentalSearchEntry } from './native-chat-experimental-search-entry'
+import { getArcVcsExperimentalSearchEntry } from './arc-vcs-search-entry'
 
 export const getExperimentalPaneSearchEntries = createLocalizedCatalog(
   (): SettingsSearchEntry[] => [
@@ -232,7 +233,8 @@ export const getExperimentalPaneSearchEntries = createLocalizedCatalog(
           'node_modules'
         )
       ]
-    }
+    },
+    getArcVcsExperimentalSearchEntry()
   ]
 )
 
@@ -276,6 +278,9 @@ export function getExperimentalSearchEntry() {
         'auto.components.settings.experimental.search.78c2a8dc74',
         'Shared paths on worktrees'
       )
+    ),
+    arcVcs: findEntry(
+      translate('auto.components.settings.experimental.search.arcVcs.title', 'Arc VCS')
     )
   } as const
 }

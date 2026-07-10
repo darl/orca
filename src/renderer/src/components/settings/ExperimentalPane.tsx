@@ -45,6 +45,7 @@ export function ExperimentalPane({
   const showWorktreeSymlinks = matchesSettingsSearch(searchQuery, [
     getExperimentalSearchEntry().symlinksOnWorktrees
   ])
+  const showArcVcs = matchesSettingsSearch(searchQuery, [getExperimentalSearchEntry().arcVcs])
   const showAgentHibernation = matchesSettingsSearch(searchQuery, [
     getExperimentalSearchEntry().agentHibernation
   ])
@@ -368,6 +369,41 @@ export function ExperimentalPane({
                 }`}
               />
             </button>
+          </div>
+        </SearchableSetting>
+      ) : null}
+
+      {showArcVcs ? (
+        <SearchableSetting
+          title={translate('auto.components.settings.ExperimentalPane.arcVcs.title', 'Arc VCS')}
+          description={translate(
+            'auto.components.settings.ExperimentalPane.arcVcs.description',
+            'Route version-control operations through the Yandex arc CLI in arc working copies.'
+          )}
+          keywords={getExperimentalSearchEntry().arcVcs.keywords}
+          className="space-y-3 py-2"
+          id="experimental-arc-vcs"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 shrink space-y-0.5">
+              <Label>
+                {translate('auto.components.settings.ExperimentalPane.arcVcs.title', 'Arc VCS')}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {translate(
+                  'auto.components.settings.ExperimentalPane.arcVcs.copy',
+                  'Uses the Yandex arc CLI for status, diff, commit, branch, and push in worktrees that are arc working copies; git repositories are unaffected. Experimental and off by default until validated on real Arcadia trees.'
+                )}
+              </p>
+            </div>
+            <SettingsSwitch
+              checked={settings.arcVcs}
+              ariaLabel={translate(
+                'auto.components.settings.ExperimentalPane.arcVcs.toggleLabel',
+                'Toggle arc VCS'
+              )}
+              onChange={() => updateSettings({ arcVcs: !settings.arcVcs })}
+            />
           </div>
         </SearchableSetting>
       ) : null}

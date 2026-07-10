@@ -20,6 +20,7 @@ import { normalizeTerminalCustomThemes } from '../../shared/terminal-custom-them
 import { normalizeDesktopTerminalScrollbackRows } from '../../shared/terminal-scrollback-policy'
 import { prepareLocalWorktreeRootsForRepos } from '../worktree-root-preparation'
 import { scheduleCurrentWorktreeBaseDirectoryWatcherSync } from './worktree-base-directory-watcher'
+import { setArcVcsSettingEnabled } from '../vcs/arc-vcs-flag'
 
 // Why: the whitelist is the source-of-truth for which keys we emit on. Casting
 // to a Set once at module load lets the IPC handler's per-key membership
@@ -52,7 +53,14 @@ export function registerSettingsHandlers(
   store: Store,
   agentAwakeService?: AgentAwakeService
 ): void {
+  // Seed the arc-vcs flag snapshot from persisted settings so the synchronous
+  // routing/detection reads reflect the toggle from boot, then keep it current.
+  setArcVcsSettingEnabled(store.getSettings().arcVcs === true)
+
   store.onSettingsChanged((updates, _settings, originWebContentsId) => {
+    if ('arcVcs' in updates) {
+      setArcVcsSettingEnabled(updates.arcVcs === true)
+    }
     for (const window of BrowserWindow.getAllWindows()) {
       const isOrigin =
         originWebContentsId !== undefined && window.webContents.id === originWebContentsId
