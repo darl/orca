@@ -57,7 +57,7 @@ import {
   SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE
 } from '../providers/ssh-git-dispatch'
 import { checkIgnoredPaths } from '../git/check-ignored-paths'
-import { resolveLocalArcRoot } from '../vcs/local-vcs-router'
+import { assertLocalArcOpUnsupported, resolveLocalArcRoot } from '../vcs/local-vcs-router'
 import { getArcStatus, getArcUpstreamStatus } from '../arc/arc-status'
 import { getArcStagedCommitContext } from '../arc/arc-commit-context'
 import { getArcHistory } from '../arc/arc-history'
@@ -394,6 +394,7 @@ export class RuntimeGitCommands {
       }
       return provider.getBranchCompare(target.worktree.path, baseRef)
     }
+    assertLocalArcOpUnsupported(target.worktree.path, 'Branch comparison')
     return getBranchCompare(target.worktree.path, baseRef, localGitOptionsForTarget(target))
   }
 
@@ -409,6 +410,7 @@ export class RuntimeGitCommands {
       }
       return provider.getCommitCompare(target.worktree.path, commitId)
     }
+    assertLocalArcOpUnsupported(target.worktree.path, 'Commit comparison')
     return getCommitCompare(target.worktree.path, commitId, localGitOptionsForTarget(target))
   }
 
@@ -465,6 +467,7 @@ export class RuntimeGitCommands {
       }
       return provider.syncForkDefaultBranch(target.worktree.path, expectedUpstream)
     }
+    assertLocalArcOpUnsupported(target.worktree.path, 'Fork sync')
     return gitSyncForkDefaultBranch(
       target.worktree.path,
       expectedUpstream,
@@ -552,6 +555,7 @@ export class RuntimeGitCommands {
       })
       return { ok: true }
     }
+    assertLocalArcOpUnsupported(target.worktree.path, 'Push')
     await gitPush(target.worktree.path, publish === true, pushTarget, {
       forceWithLease: forceWithLease === true,
       ...localGitOptionsForTarget(target)

@@ -1,8 +1,9 @@
-import { mkdtempSync, rmSync } from 'fs'
+import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GlobalSettings } from '../../shared/types'
+import type { GitForkSyncExpectedUpstream, GlobalSettings } from '../../shared/types'
+import { clearVcsDetectionCache } from '../vcs/detect-vcs'
 import type * as GitStatusModule from '../git/status'
 import type * as CommitMessageTextGenerationModule from '../text-generation/commit-message-text-generation'
 import type * as PullRequestContextModule from '../text-generation/pull-request-context'
@@ -586,6 +587,60 @@ describe('RuntimeGitCommands', () => {
         kind: 'remote',
         cwd: worktreePath
       })
+    )
+  })
+})
+
+// These ops have an SSH fork but no arc backend yet, so on an arc worktree they
+// must fail loudly with the missing-capability message rather than run git
+// plumbing against the FUSE mount.
+describe('RuntimeGitCommands arc-unsupported guards', () => {
+  let arcWorktree: string
+
+  beforeEach(() => {
+    arcWorktree = realpathSync(mkdtempSync(join(tmpdir(), 'orca-runtime-arc-')))
+    mkdirSync(join(arcWorktree, '.arc'), { recursive: true })
+    clearVcsDetectionCache()
+    process.env.ORCA_ARC_VCS = '1'
+  })
+
+  afterEach(() => {
+    rmSync(arcWorktree, { recursive: true, force: true })
+    clearVcsDetectionCache()
+    delete process.env.ORCA_ARC_VCS
+  })
+
+  function makeArcCommands(): RuntimeGitCommands {
+    return new RuntimeGitCommands({
+      resolveRuntimeGitTarget: async () => ({ worktree: makeWorktree(arcWorktree) }),
+      getRuntimeSettings: () => ({}) as GlobalSettings
+    })
+  }
+
+  it('rejects branch comparison on an arc worktree', async () => {
+    await expect(makeArcCommands().getRuntimeGitBranchCompare('id:wt-1', 'trunk')).rejects.toThrow(
+      'Branch comparison is not supported for arc worktrees yet'
+    )
+  })
+
+  it('rejects commit comparison on an arc worktree', async () => {
+    await expect(makeArcCommands().getRuntimeGitCommitCompare('id:wt-1', 'abc123')).rejects.toThrow(
+      'Commit comparison is not supported for arc worktrees yet'
+    )
+  })
+
+  it('rejects fork sync on an arc worktree', async () => {
+    await expect(
+      makeArcCommands().syncRuntimeGitForkDefaultBranch(
+        'id:wt-1',
+        {} as unknown as GitForkSyncExpectedUpstream
+      )
+    ).rejects.toThrow('Fork sync is not supported for arc worktrees yet')
+  })
+
+  it('rejects push on an arc worktree', async () => {
+    await expect(makeArcCommands().pushRuntimeGit('id:wt-1')).rejects.toThrow(
+      'Push is not supported for arc worktrees yet'
     )
   })
 })

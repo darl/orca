@@ -3,7 +3,7 @@ import { tmpdir } from 'os'
 import * as path from 'path'
 import { execFileSync } from 'child_process'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { routeLocalVcsKind } from './local-vcs-router'
+import { assertLocalArcOpUnsupported, routeLocalVcsKind } from './local-vcs-router'
 import { clearVcsDetectionCache } from './detect-vcs'
 
 describe('routeLocalVcsKind', () => {
@@ -40,5 +40,24 @@ describe('routeLocalVcsKind', () => {
     expect(routeLocalVcsKind(gitRepo)).toBe('git')
     process.env.ORCA_ARC_VCS = '1'
     expect(routeLocalVcsKind(gitRepo)).toBe('git')
+  })
+
+  describe('assertLocalArcOpUnsupported', () => {
+    it('throws a capability-named error for an arc worktree when the flag is on', () => {
+      process.env.ORCA_ARC_VCS = '1'
+      expect(() => assertLocalArcOpUnsupported(arcRepo, 'Push')).toThrow(
+        'Push is not supported for arc worktrees yet'
+      )
+    })
+
+    it('is a no-op for an arc worktree when the flag is off (strangler invariant)', () => {
+      expect(() => assertLocalArcOpUnsupported(arcRepo, 'Push')).not.toThrow()
+    })
+
+    it('is a no-op for a git worktree, flag on or off', () => {
+      expect(() => assertLocalArcOpUnsupported(gitRepo, 'Push')).not.toThrow()
+      process.env.ORCA_ARC_VCS = '1'
+      expect(() => assertLocalArcOpUnsupported(gitRepo, 'Push')).not.toThrow()
+    })
   })
 })
