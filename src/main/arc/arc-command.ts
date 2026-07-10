@@ -263,6 +263,16 @@ export function arcFetchArgs(): string[] {
 }
 
 /**
+ * `arc push` — push the current branch to its arcadia remote branch, creating
+ * the remote branch and tracking ref on first push. No force flag: arc has no
+ * `--force-with-lease`, so diverged branches sync (rebase then push) instead of
+ * force-pushing (see the primary-action decision's arc gating).
+ */
+export function arcPushArgs(): string[] {
+  return ['push']
+}
+
+/**
  * `arc pull [--ff-only] [--rebase]` — fetch and integrate the current branch
  * with its upstream. arc resolves the single arcadia remote and the branch's
  * upstream itself, so no remote/branch positional is needed.

@@ -9,7 +9,7 @@ vi.mock('./arc-command', async () => {
   }
 })
 
-import { fastForwardArc, fetchArc, pullArc, rebaseArcFromBase } from './arc-remote'
+import { fastForwardArc, fetchArc, pullArc, pushArc, rebaseArcFromBase } from './arc-remote'
 
 function lastArgv(): string[] {
   return arcExecFileAsync.mock.calls.at(-1)?.[0] as string[]
@@ -30,6 +30,12 @@ describe('arc remote argv', () => {
   it('pulls with `arc pull`', async () => {
     await pullArc('/repo')
     expect(lastArgv()).toEqual(['pull'])
+  })
+
+  it('pushes with `arc push` (no force flag)', async () => {
+    await pushArc('/repo')
+    expect(lastArgv()).toEqual(['push'])
+    expect(arcExecFileAsync.mock.calls[0][1]).toMatchObject({ cwd: '/repo' })
   })
 
   it('fast-forwards with `arc pull --ff-only`', async () => {

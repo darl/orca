@@ -45,19 +45,19 @@ describe('routeLocalVcsKind', () => {
   describe('assertLocalArcOpUnsupported', () => {
     it('throws a capability-named error for an arc worktree when the flag is on', () => {
       process.env.ORCA_ARC_VCS = '1'
-      expect(() => assertLocalArcOpUnsupported(arcRepo, 'Push')).toThrow(
-        'Push is not supported for arc worktrees yet'
+      expect(() => assertLocalArcOpUnsupported(arcRepo, 'Branch comparison')).toThrow(
+        'Branch comparison is not supported for arc worktrees yet'
       )
     })
 
     it('is a no-op for an arc worktree when the flag is off (strangler invariant)', () => {
-      expect(() => assertLocalArcOpUnsupported(arcRepo, 'Push')).not.toThrow()
+      expect(() => assertLocalArcOpUnsupported(arcRepo, 'Branch comparison')).not.toThrow()
     })
 
     it('is a no-op for a git worktree, flag on or off', () => {
-      expect(() => assertLocalArcOpUnsupported(gitRepo, 'Push')).not.toThrow()
+      expect(() => assertLocalArcOpUnsupported(gitRepo, 'Branch comparison')).not.toThrow()
       process.env.ORCA_ARC_VCS = '1'
-      expect(() => assertLocalArcOpUnsupported(gitRepo, 'Push')).not.toThrow()
+      expect(() => assertLocalArcOpUnsupported(gitRepo, 'Branch comparison')).not.toThrow()
     })
   })
 })

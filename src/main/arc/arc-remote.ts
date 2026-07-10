@@ -4,6 +4,7 @@ import {
   arcExecOptions,
   arcFetchArgs,
   arcPullArgs,
+  arcPushArgs,
   arcRebaseArgs,
   type ArcOpExec
 } from './arc-command'
@@ -28,6 +29,17 @@ export async function fetchArc(arcRoot: string, options: ArcRemoteExec = {}): Pr
 /** Fetch and integrate the current branch with its upstream (arc's default merge). */
 export async function pullArc(arcRoot: string, options: ArcRemoteExec = {}): Promise<void> {
   await runRemote(arcPullArgs(), arcRoot, options)
+}
+
+/**
+ * Push the current branch to its arcadia remote branch. Covers both the first
+ * publish (arc creates the remote branch + tracking ref) and subsequent
+ * ahead-only pushes — the git path's publish/push split collapses because arc
+ * sets up tracking itself. Never forces: diverged branches route to sync
+ * (rebase then push), so this arm is only reached for a clean fast-forward push.
+ */
+export async function pushArc(arcRoot: string, options: ArcRemoteExec = {}): Promise<void> {
+  await runRemote(arcPushArgs(), arcRoot, options)
 }
 
 /** Integrate only when a fast-forward is possible; abort otherwise. */

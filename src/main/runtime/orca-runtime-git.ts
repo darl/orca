@@ -64,7 +64,7 @@ import { getArcHistory } from '../arc/arc-history'
 import { getArcBranchDiff, getArcCommitDiff, getArcDiff } from '../arc/arc-diff'
 import { commitArcChanges } from '../arc/arc-commit'
 import { checkoutArcBranch, listArcLocalBranches } from '../arc/arc-branches'
-import { fastForwardArc, fetchArc, pullArc, rebaseArcFromBase } from '../arc/arc-remote'
+import { fastForwardArc, fetchArc, pullArc, pushArc, rebaseArcFromBase } from '../arc/arc-remote'
 import { abortArcConflict, getArcConflictOperation } from '../arc/arc-conflict'
 import {
   bulkDiscardArcChanges,
@@ -555,7 +555,11 @@ export class RuntimeGitCommands {
       })
       return { ok: true }
     }
-    assertLocalArcOpUnsupported(target.worktree.path, 'Push')
+    const arcRoot = resolveLocalArcRoot(target.worktree.path)
+    if (arcRoot) {
+      await pushArc(arcRoot)
+      return { ok: true }
+    }
     await gitPush(target.worktree.path, publish === true, pushTarget, {
       forceWithLease: forceWithLease === true,
       ...localGitOptionsForTarget(target)

@@ -4,6 +4,7 @@ import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GitForkSyncExpectedUpstream, GlobalSettings } from '../../shared/types'
 import { clearVcsDetectionCache } from '../vcs/detect-vcs'
+import type * as ArcRemoteModule from '../arc/arc-remote'
 import type * as GitStatusModule from '../git/status'
 import type * as CommitMessageTextGenerationModule from '../text-generation/commit-message-text-generation'
 import type * as PullRequestContextModule from '../text-generation/pull-request-context'
@@ -20,7 +21,8 @@ const mocks = vi.hoisted(() => ({
   generatePullRequestFieldsFromContext: vi.fn(),
   resolveCommitMessageSettings: vi.fn(),
   resolveHostedReviewBodyForGeneration: vi.fn(),
-  getSshGitProvider: vi.fn()
+  getSshGitProvider: vi.fn(),
+  pushArc: vi.fn()
 }))
 
 vi.mock('../git/status', async () => ({
@@ -53,6 +55,11 @@ vi.mock('../text-generation/pull-request-context', async () => ({
 
 vi.mock('../providers/ssh-git-dispatch', () => ({
   getSshGitProvider: mocks.getSshGitProvider
+}))
+
+vi.mock('../arc/arc-remote', async () => ({
+  ...(await vi.importActual<typeof ArcRemoteModule>('../arc/arc-remote')),
+  pushArc: mocks.pushArc
 }))
 
 vi.mock('../source-control/pull-request-template', () => ({
@@ -601,6 +608,7 @@ describe('RuntimeGitCommands arc-unsupported guards', () => {
     arcWorktree = realpathSync(mkdtempSync(join(tmpdir(), 'orca-runtime-arc-')))
     mkdirSync(join(arcWorktree, '.arc'), { recursive: true })
     mocks.getPullRequestDraftContext.mockClear()
+    mocks.pushArc.mockReset()
     clearVcsDetectionCache()
     process.env.ORCA_ARC_VCS = '1'
   })
@@ -639,10 +647,12 @@ describe('RuntimeGitCommands arc-unsupported guards', () => {
     ).rejects.toThrow('Fork sync is not supported for arc worktrees yet')
   })
 
-  it('rejects push on an arc worktree', async () => {
-    await expect(makeArcCommands().pushRuntimeGit('id:wt-1')).rejects.toThrow(
-      'Push is not supported for arc worktrees yet'
-    )
+  it('pushes an arc worktree through arc push', async () => {
+    mocks.pushArc.mockResolvedValue(undefined)
+
+    await expect(makeArcCommands().pushRuntimeGit('id:wt-1')).resolves.toEqual({ ok: true })
+
+    expect(mocks.pushArc).toHaveBeenCalledWith(arcWorktree)
   })
 
   it('reports PR-field generation as arc-unsupported instead of shelling git', async () => {
