@@ -143,6 +143,25 @@ describe('source-control primary action decision', () => {
     })
   })
 
+  it('routes diverged branches without patch-equivalence to Sync, not force-push (arc shape)', () => {
+    // arc's getArcUpstreamStatus never sets behindCommitsArePatchEquivalent
+    // because arc has no --force-with-lease; the diverged case must fall through
+    // to Sync (fetch + pull + push). Locks the invariant M2.5 push depends on.
+    const result = resolveSourceControlCommitAreaPrimaryActionDecision(
+      inputs({
+        branchCommitsAhead: 4,
+        upstreamStatus: {
+          hasUpstream: true,
+          upstreamName: 'arcadia/feature',
+          ahead: 14,
+          behind: 3
+        }
+      })
+    )
+    expect(result).toMatchObject({ kind: 'sync', titleIntent: 'sync_counts', ahead: 14, behind: 3 })
+    expect(result.labelIntent).not.toBe('force_push')
+  })
+
   it('keeps review creation out of commit-area decisions', () => {
     const input = inputs({
       upstreamStatus: { hasUpstream: true, ahead: 0, behind: 0 },

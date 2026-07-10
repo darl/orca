@@ -55,6 +55,10 @@ export async function getArcUpstreamStatus(worktreePath: string): Promise<GitUps
     cwd: worktreePath
   })
   const fold = deriveArcUpstreamFold(parseArcStatus(json))
+  // behindCommitsArePatchEquivalent is intentionally left unset: it is the only
+  // signal that flips the primary action to force-push-with-lease, and arc has
+  // no --force-with-lease. Omitting it routes a diverged arc branch to Sync
+  // (fetch + pull + push) instead, per the M2.5 push design.
   return {
     hasUpstream: fold.upstreamName !== undefined,
     ...(fold.upstreamName ? { upstreamName: fold.upstreamName } : {}),
