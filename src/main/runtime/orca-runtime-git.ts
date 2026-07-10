@@ -557,6 +557,9 @@ export class RuntimeGitCommands {
     }
     const arcRoot = resolveLocalArcRoot(target.worktree.path)
     if (arcRoot) {
+      // arc push ignores publish/pushTarget/forceWithLease: arc self-tracks on
+      // first push, has a single remote, and has no --force-with-lease (diverged
+      // branches route to Sync instead). See pushArc.
       await pushArc(arcRoot)
       return { ok: true }
     }
